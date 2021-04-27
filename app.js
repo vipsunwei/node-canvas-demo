@@ -33,12 +33,17 @@ function getDataForImage(options) {
  */
 async function imageHandler(options) {
   try {
+    console.log(`=========================`);
+    console.log(
+      `\n收到${
+        options.type === "raw" ? "非质控图" : "质控图"
+      }请求来自：\nstation: ${options.station};\ntkyid：${options.tkyid};`
+    );
     const st = new Date() - 0;
     let { data } = await getDataForImage(options);
     const diff = +new Date() - st;
-    console.log(
-      `tkyid：${options.tkyid};\n 请求数据花费时间：${diff / 1000}秒`
-    );
+    console.log(`\n请求数据花费时间：${diff / 1000}秒`);
+    console.log(`=========================`);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
     return imgBase64;
@@ -330,6 +335,7 @@ function generateImageBase64(lineArr) {
   config.option = defaultOptions;
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
+  // return "data:image/png;base64," + base64;;
   return base64;
 }
 
