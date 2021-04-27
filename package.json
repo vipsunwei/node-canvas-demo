@@ -1,0 +1,17 @@
+{
+  "name": "node-canvas-demo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "node-echarts-canvas": "^1.2.6"
+  },
+  "scripts": {
+    "dev": "pm2 start index.js -i 1 --name report --time --watch --ignore-watch package.json",
+    "pro": "pm2 start index.js -i 1 --name report --time --log /data/node/report/logs/ --watch --ignore-watch package.json"
+  }
+}
