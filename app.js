@@ -49,6 +49,22 @@ async function imageHandler(options) {
     throw error;
   }
 }
+
+/**
+ * 判断要素值是否是个合法的数字
+ * @param {object} param0
+ * @param {object} param0.key
+ * @param {object} param0.value
+ * @returns
+ */
+function isNaN({ key, value }) {
+  const commonErrArr = ["NaN", "99999.000000", null, undefined, "", 0, false];
+  const aboveSeaLevelErrArr = [...commonErrArr, "0.000000"];
+  if (key === "aboveSeaLevel") {
+    return aboveSeaLevelErrArr.includes(value);
+  }
+  return commonErrArr.includes(value);
+}
 /**
  * 格式化echarts画图需要的data数组
  * @param {Array} data 数组
@@ -57,41 +73,23 @@ async function imageHandler(options) {
 function formatData(data) {
   const lineArr = [[], [], [], [], []];
   data.forEach((el) => {
-    if (
-      el.temperature == "NaN" ||
-      !el.temperature ||
-      el.temperature == "99999.000000" ||
-      el.temperature >= 200
-    ) {
+    if (isNaN({ value: el.temperature }) || el.temperature >= 200) {
       lineArr[0].push(NaN);
     } else {
       lineArr[0].push(Number(el.temperature));
     }
-    if (
-      el.humidity == "NaN" ||
-      !el.humidity ||
-      el.humidity == "99999.000000" ||
-      el.humidity >= 100
-    ) {
+    if (isNaN({ value: el.humidity }) || el.humidity >= 100) {
       lineArr[1].push(NaN);
     } else {
       lineArr[1].push(Number(el.humidity));
     }
-    if (
-      el.pressure == "NaN" ||
-      !el.pressure ||
-      el.pressure == "99999.000000" ||
-      el.pressure >= 2000
-    ) {
+    if (isNaN({ value: el.pressure }) || el.pressure >= 2000) {
       lineArr[2].push(NaN);
     } else {
       lineArr[2].push(Number(el.pressure));
     }
     if (
-      el.aboveSeaLevel == "NaN" ||
-      !el.aboveSeaLevel ||
-      el.aboveSeaLevel == "99999.000000" ||
-      el.aboveSeaLevel == "0.000000" ||
+      isNaN({ key: "aboveSeaLevel", value: el.aboveSeaLevel }) ||
       el.aboveSeaLevel < 0
     ) {
       lineArr[3].push(NaN);
@@ -99,9 +97,9 @@ function formatData(data) {
       lineArr[3].push(Number(el.aboveSeaLevel));
     }
     if (el.seconds) {
-      var hours = new Date(el.seconds * 1000).getHours();
-      var minutes = new Date(el.seconds * 1000).getMinutes();
-      var seconds = new Date(el.seconds * 1000).getSeconds();
+      const hours = new Date(el.seconds * 1000).getHours();
+      const minutes = new Date(el.seconds * 1000).getMinutes();
+      const seconds = new Date(el.seconds * 1000).getSeconds();
       lineArr[4].push(
         `${hours < 10 ? "0" + hours : hours}:${
           minutes < 10 ? "0" + minutes : minutes
@@ -343,8 +341,7 @@ function generateImageBase64(lineArr) {
 }
 
 const app = express();
-console.dir(process.env);
-const port = process.env.port || 3000;
+const port = 3000;
 
 app.use(cors());
 // parse application/x-www-form-urlencoded
@@ -358,11 +355,11 @@ app.post("/image", function (request, response) {
   const options = request?.body;
 
   if (!options || !options.station) {
-    response.status(401).send("params 'station' is invalid!");
+    response.status(401).send("parameter 'station' is empty!");
     return;
   }
   if (!options || !options.tkyid) {
-    response.status(401).send("params 'tkyid' is invalid!");
+    response.status(401).send("parameter 'tkyid' is empty!");
     return;
   }
   imageHandler(options)
