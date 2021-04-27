@@ -1,9 +1,7 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const os = require("os");
+const bodyParser = require("body-parser");
 const axios = require("axios");
-
 const echarts = require("node-echarts-canvas");
 const config = {
   width: 950, // Image width, type is number.
@@ -19,7 +17,7 @@ const url = `${baseUrl}/api/dataset/view.json`;
 /**
  * 根据参数获取画图所需的数据
  * @param {object} options 参数对象
- * @returns 网络请求返回的promise对象
+ * @returns {promise} 网络请求返回的promise对象
  */
 function getDataForImage(options) {
   if (!options.type || options.type !== "raw") {
@@ -31,10 +29,9 @@ function getDataForImage(options) {
 /**
  * 接口处理函数
  * @param {object} options 参数对象
- * @returns res对象 { img: 'base64' }
+ * @returns {string} 图片base64串
  */
 async function imageHandler(options) {
-  // options = { station: "57993", tkyid: "20125054" };
   try {
     const st = new Date() - 0;
     let { data } = await getDataForImage(options);
@@ -67,7 +64,7 @@ function isNaN({ key, value }) {
 }
 /**
  * 格式化echarts画图需要的data数组
- * @param {Array} data 数组
+ * @param {array} data 数组
  * @returns 数组
  */
 function formatData(data) {
@@ -127,7 +124,7 @@ function http(url, obj, type) {
 
 /**
  * 把echarts出的图表转成base64字符串
- * @param {Array} lineArr echarts画图需要的data数据数组
+ * @param {array} lineArr echarts画图需要的data数据数组
  * @returns 图片的base64字符串
  */
 function generateImageBase64(lineArr) {
@@ -322,19 +319,15 @@ function generateImageBase64(lineArr) {
       },
     ],
   };
-
   defaultOptions.series[0].data = lineArr[0];
   defaultOptions.series[1].data = lineArr[1];
   defaultOptions.series[2].data = lineArr[2];
   defaultOptions.series[3].data = lineArr[3];
-
   defaultOptions.xAxis[0].data = lineArr[4];
   defaultOptions.xAxis[1].data = lineArr[4];
   defaultOptions.xAxis[2].data = lineArr[4];
   defaultOptions.xAxis[3].data = lineArr[4];
-
   config.option = defaultOptions;
-
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
   return base64;
@@ -346,14 +339,12 @@ const port = 3000;
 app.use(cors());
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
-
 // parse application/json
 app.use(bodyParser.json());
 
 // 处理/image路由请求
 app.post("/image", function (request, response) {
   const options = request?.body;
-
   if (!options || !options.station) {
     response.status(401).send("parameter 'station' is empty!");
     return;
@@ -364,7 +355,6 @@ app.post("/image", function (request, response) {
   }
   imageHandler(options)
     .then((result) => {
-      // console.log("获取到的画图需要的数据 -- ", result);
       response.send(result);
     })
     .catch((error) => {
@@ -373,5 +363,5 @@ app.post("/image", function (request, response) {
 });
 
 app.listen(port, () => {
-  console.log(`app listening at ${os.hostname()}:${port}`);
+  console.log(`app listening at port:${port}`);
 });
