@@ -40,9 +40,10 @@ async function imageHandler(options) {
       }请求来自：\nstation: ${options.station};\ntkyid：${options.tkyid};`
     );
     const st = new Date() - 0;
-    let { data } = await getDataForImage(options);
+    const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
     console.log(`\n请求数据花费时间：${diff / 1000}秒`);
+    // console.log("返回的数据 -- ", data);
     console.log(`=========================`);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
@@ -73,6 +74,7 @@ function isNaN({ key, value }) {
  * @returns 数组
  */
 function formatData(data) {
+  console.log("formatData start");
   const lineArr = [[], [], [], [], []];
   data.forEach((el) => {
     if (isNaN({ value: el.temperature }) || el.temperature >= 200) {
@@ -109,6 +111,7 @@ function formatData(data) {
       );
     }
   });
+  console.log("formatData end");
   return lineArr;
 }
 
@@ -133,6 +136,7 @@ function http(url, obj, type) {
  * @returns 图片的base64字符串
  */
 function generateImageBase64(lineArr) {
+  console.log("generateImageBase64 start");
   const colors = ["#FF0000", "#00FF00", "#0000FF", "#000", "#F56CB5"];
   const defaultOptions = {
     enableAutoDispose: true,
@@ -335,7 +339,8 @@ function generateImageBase64(lineArr) {
   config.option = defaultOptions;
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
-  // return "data:image/png;base64," + base64;;
+  // return "data:image/png;base64," + base64;
+  console.log("generateImageBase64 end");
   return base64;
 }
 
@@ -364,6 +369,7 @@ app.post("/image", function (request, response) {
       response.send(result);
     })
     .catch((error) => {
+      console.log("500 报错信息： ", error);
       response.status(500).send(error);
     });
 });
