@@ -12,7 +12,7 @@ const config = {
   enableAutoDispose: true, //Enable auto-dispose echarts after the image is created.
 };
 
-const baseUrl = "http://172.16.100.175";
+const baseUrl = "https://sonde.r7tec.com";
 const url = `${baseUrl}/api/dataset/view.json`;
 /**
  * 根据参数获取画图所需的数据
@@ -33,20 +33,20 @@ function getDataForImage(options) {
  */
 async function imageHandler(options) {
   try {
-    console.log(`=========================`);
+    console.log(`============start=============`);
     console.log(
-      `\n收到${
-        options.type === "raw" ? "非质控图" : "质控图"
-      }请求来自：\nstation: ${options.station};\ntkyid：${options.tkyid};`
+      `\n图片类型：${options.type === "raw" ? "非质控图" : "质控图"}\n站号: ${
+        options.station
+      };\n探空仪ID：${options.tkyid};`
     );
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
     console.log(`\n请求数据花费时间：${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
-    console.log(`=========================`);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
+    console.log(`============end=============`);
     return imgBase64;
   } catch (error) {
     throw error;
@@ -357,11 +357,11 @@ app.use(bodyParser.json());
 app.post("/image", function (request, response) {
   const options = request?.body;
   if (!options || !options.station) {
-    response.status(401).send("parameter 'station' is empty!");
+    response.status(400).send("parameter 'station' is empty!");
     return;
   }
   if (!options || !options.tkyid) {
-    response.status(401).send("parameter 'tkyid' is empty!");
+    response.status(400).send("parameter 'tkyid' is empty!");
     return;
   }
   imageHandler(options)

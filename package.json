@@ -12,6 +12,6 @@
   },
   "scripts": {
     "dev": "pm2 start app.js -i 2 --name report --time --watch --ignore-watch package.json",
-    "pro": "pm2 start app.js -i 4 --name report --time --watch --ignore-watch package.json"
+    "pro": "pm2 start app.js -i 2 --name report --time --watch --ignore-watch package.json"
   }
 }
