@@ -33,20 +33,19 @@ function getDataForImage(options) {
  */
 async function imageHandler(options) {
   try {
-    console.log(`============start=============`);
-    console.log(
-      `\n图片类型：${options.type === "raw" ? "非质控图" : "质控图"}\n站号: ${
-        options.station
-      };\n探空仪ID：${options.tkyid};`
-    );
+    console.log();
+    console.log("============start=============");
+    console.log(`图片类型：${options.type === "raw" ? "非质控图" : "质控图"}`);
+    console.log(`站号: ${options.station}`);
+    console.log(`探空仪ID：${options.tkyid}`);
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
-    console.log(`\n请求数据花费时间：${diff / 1000}秒`);
+    console.log(`请求数据花费时间：${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
-    console.log(`============end=============`);
+    console.log("============end=============");
     return imgBase64;
   } catch (error) {
     throw error;
@@ -74,7 +73,7 @@ function isNaN({ key, value }) {
  * @returns 数组
  */
 function formatData(data) {
-  console.log("formatData start");
+  console.time("formatData");
   const lineArr = [[], [], [], [], []];
   data.forEach((el) => {
     if (isNaN({ value: el.temperature }) || el.temperature >= 200) {
@@ -111,7 +110,7 @@ function formatData(data) {
       );
     }
   });
-  console.log("formatData end");
+  console.timeEnd("formatData");
   return lineArr;
 }
 
@@ -136,7 +135,7 @@ function http(url, obj, type) {
  * @returns 图片的base64字符串
  */
 function generateImageBase64(lineArr) {
-  console.log("generateImageBase64 start");
+  console.time("generateImageBase64");
   const colors = ["#FF0000", "#00FF00", "#0000FF", "#000", "#F56CB5"];
   const defaultOptions = {
     enableAutoDispose: true,
@@ -340,7 +339,7 @@ function generateImageBase64(lineArr) {
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
   // return "data:image/png;base64," + base64;
-  console.log("generateImageBase64 end");
+  console.timeEnd("generateImageBase64");
   return base64;
 }
 
