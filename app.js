@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 const echarts = require("node-echarts-canvas");
+const chalk = require("chalk");
 const config = {
   width: 950, // Image width, type is number.
   height: 300, // Image height, type is number.
@@ -14,6 +15,13 @@ const config = {
 
 const baseUrl = "https://sonde.r7tec.com";
 const url = `${baseUrl}/api/dataset/view.json`;
+const log = (options, msg) => {
+  const { tkyid, station, type } = options;
+  const type_name = type === "raw" ? "非质控" : "质控";
+  const m = `站号：${station}-探空仪ID：${tkyid}-${type_name}-${msg}`;
+  // console.log(m);
+  chalk.green(m);
+};
 /**
  * 根据参数获取画图所需的数据
  * @param {object} options 参数对象
@@ -34,18 +42,15 @@ function getDataForImage(options) {
 async function imageHandler(options) {
   try {
     console.log();
-    console.log("============start=============");
-    console.log(`图片类型：${options.type === "raw" ? "非质控图" : "质控图"}`);
-    console.log(`站号: ${options.station}`);
-    console.log(`探空仪ID：${options.tkyid}`);
+    log(options, `============start=============`);
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
-    console.log(`请求数据花费时间：${diff / 1000}秒`);
+    log(options, `请求数据花费时间：${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
-    console.log("============end=============");
+    log(options, `============ end =============`);
     return imgBase64;
   } catch (error) {
     throw error;
@@ -57,7 +62,6 @@ async function imageHandler(options) {
  * @param {object} param0
  * @param {object} param0.key
  * @param {object} param0.value
- * @returns
  */
 function isNaN({ key, value }) {
   const commonErrArr = ["NaN", "99999.000000", null, undefined, "", 0, false];
@@ -73,20 +77,19 @@ function isNaN({ key, value }) {
  * @returns 数组
  */
 function formatData(data) {
-  console.time("formatData");
   const lineArr = [[], [], [], [], []];
   data.forEach((el) => {
-    if (isNaN({ value: el.temperature }) || el.temperature >= 200) {
+    if (isNaN({ value: el.temperature }) || el.temperature > 200) {
       lineArr[0].push(NaN);
     } else {
       lineArr[0].push(Number(el.temperature));
     }
-    if (isNaN({ value: el.humidity }) || el.humidity >= 100) {
+    if (isNaN({ value: el.humidity }) || el.humidity > 100) {
       lineArr[1].push(NaN);
     } else {
       lineArr[1].push(Number(el.humidity));
     }
-    if (isNaN({ value: el.pressure }) || el.pressure >= 2000) {
+    if (isNaN({ value: el.pressure }) || el.pressure > 2000) {
       lineArr[2].push(NaN);
     } else {
       lineArr[2].push(Number(el.pressure));
@@ -110,7 +113,6 @@ function formatData(data) {
       );
     }
   });
-  console.timeEnd("formatData");
   return lineArr;
 }
 
@@ -135,7 +137,6 @@ function http(url, obj, type) {
  * @returns 图片的base64字符串
  */
 function generateImageBase64(lineArr) {
-  console.time("generateImageBase64");
   const colors = ["#FF0000", "#00FF00", "#0000FF", "#000", "#F56CB5"];
   const defaultOptions = {
     enableAutoDispose: true,
@@ -339,7 +340,6 @@ function generateImageBase64(lineArr) {
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
   // return "data:image/png;base64," + base64;
-  console.timeEnd("generateImageBase64");
   return base64;
 }
 
