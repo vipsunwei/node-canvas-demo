@@ -15,13 +15,29 @@ const config = {
 
 const baseUrl = "https://sonde.r7tec.com";
 const url = `${baseUrl}/api/dataset/view.json`;
-const log = (options, msg) => {
-  const { tkyid, station, type } = options;
-  const type_name = type === "raw" ? "非质控" : "质控";
-  const m = `站号：${station}-探空仪ID：${tkyid}-${type_name}-${msg}`;
-  // console.log(m);
-  chalk.green(m);
-};
+const red = chalk.bold.red;
+const orange = chalk.keyword("orange");
+const green = chalk.bold.green;
+const yellow = chalk.bold.yellow;
+const blueBright = chalk.bold.blueBright;
+
+function info(options, msg = "") {
+  const stationText = `${yellow(options.station)}`;
+  const tkyidText = `${yellow(options.tkyid)}`;
+  const typeText = options.type === "raw" ? yellow("非质控") : yellow("质控");
+  const m = `${stationText} - ${tkyidText} - ${typeText} - ${blueBright(msg)}`;
+  console.log(m);
+}
+function warning(msg = "") {
+  console.log(orange(msg));
+}
+function err(msg = "") {
+  console.log(red(msg));
+}
+function success(msg = "") {
+  console.log(chalk.blue(msg));
+}
+
 /**
  * 根据参数获取画图所需的数据
  * @param {object} options 参数对象
@@ -42,15 +58,15 @@ function getDataForImage(options) {
 async function imageHandler(options) {
   try {
     console.log();
-    log(options, `============start=============`);
+    info(options, `开始`);
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
-    log(options, `请求数据花费时间：${diff / 1000}秒`);
+    info(options, `请求数据${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
     const lineArr = formatData(data);
     const imgBase64 = generateImageBase64(lineArr);
-    log(options, `============ end =============`);
+    info(options, `结束`);
     return imgBase64;
   } catch (error) {
     throw error;
@@ -357,22 +373,28 @@ app.post("/image", function (request, response) {
   const options = request?.body;
   if (!options || !options.station) {
     response.status(400).send("parameter 'station' is empty!");
+    warning("parameter 'station' is empty!");
     return;
   }
   if (!options || !options.tkyid) {
     response.status(400).send("parameter 'tkyid' is empty!");
+    warning("parameter 'tkyid' is empty!");
     return;
   }
+
+  console.time("total");
   imageHandler(options)
     .then((result) => {
       response.send(result);
+      info(options);
+      console.timeEnd("total");
     })
     .catch((error) => {
-      console.log("500 报错信息： ", error);
+      err("500 报错信息： " + JSON.stringify(error));
       response.status(500).send(error);
     });
 });
 
 app.listen(port, () => {
-  console.log(`app listening at port:${port}`);
+  success(`app listening at port:${port}`);
 });
