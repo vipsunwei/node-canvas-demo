@@ -382,12 +382,10 @@ app.post("/image", function (request, response) {
     return;
   }
 
-  console.time("total");
   imageHandler(options)
     .then((result) => {
       response.send(result);
       info(options);
-      console.timeEnd("total");
     })
     .catch((error) => {
       err("500 报错信息： " + JSON.stringify(error));
