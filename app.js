@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 const echarts = require("node-echarts-canvas");
 const chalk = require("chalk");
+const request = require("request");
+const { promisify } = require("util");
+const post = promisify(request.post);
 const config = {
   width: 950, // Image width, type is number.
   height: 300, // Image height, type is number.
@@ -368,7 +371,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-// 处理/image路由请求
+/**
+ * 处理/image路由请求
+ * @param request.body.station
+ * @param request.body.tkyid
+ * @param request.body.type raw非质控 不传或传空字符串为质控
+ */
 app.post("/image", function (request, response) {
   const options = request?.body;
   if (!options || !options.station) {
@@ -390,6 +398,442 @@ app.post("/image", function (request, response) {
     .catch((error) => {
       err("500 报错信息： " + JSON.stringify(error));
       response.status(500).send(error);
+    });
+});
+
+/**
+ * 时间字符串转换成时间戳(秒)
+ * @param {string} dateStr 时间字符串 例如：2020-10-10 20:34:23
+ * @returns {number} 时间戳(秒)
+ */
+function dateStrToTimeStamp(dateStr) {
+  const date = new Date(dateStr);
+  const seconds = date.getTime() / 1000; //转换成秒；
+  return seconds;
+}
+
+/**
+ * 格式化探空仪画图数据
+ * @param {array} data
+ */
+function formatSondeData(data) {
+  const lineArr = [];
+  const arr = [];
+  let difference = 0;
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+  try {
+    data.forEach((el, i) => {
+      if (el.seconds) {
+        if (i !== 0) {
+          difference =
+            parseInt(new Date(el.seconds).getTime() / 1000) -
+            parseInt(new Date(data[i - 1].seconds).getTime() / 1000);
+          if (difference >= 1) {
+            for (let i = 0; i < difference - 1; i++) {
+              lineArr.push("NaN");
+              hours = new Date((el.seconds + i) * 1000).getHours();
+              minutes = new Date((el.seconds + i) * 1000).getMinutes();
+              seconds = new Date((el.seconds + i) * 1000).getSeconds();
+              arr.push(
+                `${hours < 10 ? "0" + hours : hours}:${
+                  minutes < 10 ? "0" + minutes : minutes
+                }:${seconds < 10 ? "0" + seconds : seconds}`
+              );
+            }
+          }
+        }
+        if (
+          i !== 0 &&
+          new Date(el.seconds).getTime() !==
+            new Date(data[i - 1].seconds).getTime()
+        ) {
+          if (
+            el.aboveSeaLevel === "NaN" ||
+            !el.aboveSeaLevel ||
+            el.aboveSeaLevel === "99999.000000" ||
+            el.aboveSeaLevel === "0.000000" ||
+            el.aboveSeaLevel < 0
+          ) {
+            lineArr.push("NaN");
+          } else {
+            lineArr.push(Number(el.aboveSeaLevel));
+          }
+          hours = new Date(el.seconds * 1000).getHours();
+          minutes = new Date(el.seconds * 1000).getMinutes();
+          seconds = new Date(el.seconds * 1000).getSeconds();
+          arr.push(
+            `${hours < 10 ? "0" + hours : hours}:${
+              minutes < 10 ? "0" + minutes : minutes
+            }:${seconds < 10 ? "0" + seconds : seconds}`
+          );
+        }
+      }
+    });
+  } catch (error) {}
+  return [lineArr, arr];
+}
+
+/**
+ * 格式化熔断器画图数据
+ * @param {array} data
+ * @param {number} startTime
+ */
+function formatFuseData(data, startTime) {
+  const lineArr = [];
+  const arr = [];
+  let difference = 0;
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+  try {
+    data.forEach((el, i) => {
+      if (el.timeStamp && new Date(el.timeStamp).getTime() >= startTime) {
+        if (i !== 0) {
+          difference =
+            parseInt(new Date(el.timeStamp).getTime() / 1000) -
+            parseInt(new Date(data[i - 1].timeStamp).getTime() / 1000);
+          if (difference >= 1) {
+            for (let i = 0; i < difference - 1; i++) {
+              lineArr.push("NaN");
+              hours = new Date(
+                new Date(el.timeStamp).getTime() + 1000 * i
+              ).getHours();
+              minutes = new Date(
+                new Date(el.timeStamp).getTime() + 1000 * i
+              ).getMinutes();
+              seconds = new Date(
+                new Date(el.timeStamp).getTime() + 1000 * i
+              ).getSeconds();
+              arr.push(
+                `${hours < 10 ? "0" + hours : hours}:${
+                  minutes < 10 ? "0" + minutes : minutes
+                }:${seconds < 10 ? "0" + seconds : seconds}`
+              );
+            }
+          }
+        }
+        if (
+          el.aboveSeaLevel === "NaN" ||
+          !el.aboveSeaLevel ||
+          el.aboveSeaLevel === "99999.000000" ||
+          el.aboveSeaLevel === "0.000000" ||
+          el.aboveSeaLevel < 0 ||
+          el.aboveSeaLevel >= 40000
+        ) {
+          lineArr.push("NaN");
+        } else {
+          lineArr.push(Number(el.aboveSeaLevel));
+        }
+        hours = new Date(el.timeStamp).getHours();
+        minutes = new Date(el.timeStamp).getMinutes();
+        seconds = new Date(el.timeStamp).getSeconds();
+        arr.push(
+          `${hours < 10 ? "0" + hours : hours}:${
+            minutes < 10 ? "0" + minutes : minutes
+          }:${seconds < 10 ? "0" + seconds : seconds}`
+        );
+      }
+    });
+  } catch (error) {}
+  return [lineArr, arr];
+}
+/**
+ * 根据探空仪ID和站号获取开始时间和结束时间
+ * @param {object} options
+ * @param {string} options.station
+ * @param {string} options.tkyid
+ */
+function getSondeTime(options) {
+  const { station, tkyid } = options;
+  const url = "https://sonde.r7tec.com/project/TK_TKY_STAT_DATA.query.do";
+  return post(url, {
+    form: {
+      _query_param: JSON.stringify([
+        { FD: "STATION_NUMBER", OP: "=", WD: station },
+        { FD: "TKYID", OP: "=", WD: tkyid },
+      ]),
+    },
+  }).then((res) => {
+    const sondeTime = { startTime: "", endTime: "" };
+    try {
+      const _DATA_ = JSON.parse(res.body)._DATA_;
+      if (_DATA_.length) {
+        sondeTime.startTime = dateStrToTimeStamp(
+          _DATA_[0].FLY_START_TIME
+        ).toString();
+        sondeTime.endTime = dateStrToTimeStamp(
+          _DATA_[0].FINISHED_TIME
+        ).toString();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    return sondeTime;
+  });
+}
+
+/**
+ * 获取熔断器数据
+ * @param {object} options
+ * @param {string} options.sondeCode
+ * @param {string} options.startTime
+ * @param {string} options.endTime
+ * @param {string} options.pixel
+ */
+function getSoundingMsg(options) {
+  // const url = "http://192.168.10.39:18082/api/dataset/getSoundingMsg";
+  const url = "https://sonde.r7tec.com/api/dataset/getSoundingMsg";
+  const params = {
+    sondeCode: options.sondeCode,
+    startTime: options.startTime,
+    endTime: options.endTime,
+    pixel: "0",
+  };
+  return axios.get(url, { params }).then((res) => Object.values(res.data.data));
+}
+
+/**
+ * 获取熔断器ID
+ * @param {string} sondeCode 探空仪ID
+ */
+function getFuseId(sondeCode) {
+  const url = "https://sonde.r7tec.com/project/TK_SONDE_FUSE.query.do";
+  return post(url, {
+    form: {
+      _query_param: JSON.stringify([
+        { FD: "SONDECODE", OP: "=", WD: sondeCode },
+      ]),
+    },
+  }).then((res) => {
+    let fuseId = "";
+    try {
+      const _DATA_ = JSON.parse(res.body)._DATA_;
+      if (_DATA_.length) {
+        fuseId = _DATA_[0].FUSECODE;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    return fuseId;
+  });
+}
+
+/**
+ * 生成高程图base64数据
+ * @param {object} data
+ * @param {array} data.sondeData 探空仪数据
+ * @param {array} data.fuseData 熔断器数据
+ * @param {number} data.startTime 放球开始时间
+ */
+function generateHeightImageBase64({ sondeData, fuseData, startTime }) {
+  const colors = [
+    "#FF0000",
+    "#00FF00",
+    "#0000FF",
+    "#000",
+    "#FF4343",
+    "#67FF67",
+    "#6A6AFF",
+    "#5D5D5D",
+    "#FF8B8B",
+    "#B7FCB7",
+    "#B4B4FC",
+    "#A2A2A2",
+  ];
+  const heightOption = {
+    backgroundColor: "#fff",
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "cross",
+      },
+      formatter(params) {
+        let str = "";
+        for (var i = 0; i < params.length; i++) {
+          if (params[i].seriesName === "探空仪") {
+            str += `${params[i].seriesName}：${
+              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
+            }<br>`;
+          } else if (params[i].seriesName === "熔断器") {
+            str += `${params[i].seriesName}：${
+              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
+            }`;
+          }
+        }
+        return str;
+      },
+    },
+    animation: false,
+    legend: {
+      data: ["探空仪", "熔断器"],
+    },
+    xAxis: [
+      {
+        type: "category",
+        minInterval: 100,
+        data: [],
+        position: "bottom",
+        axisLabel: {
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
+        axisLine: {
+          lineStyle: {
+            color: colors[3],
+          },
+        },
+      },
+    ],
+    grid: {
+      top: "18%",
+      bottom: "14%",
+      left: "18%",
+      right: "18%",
+    },
+    dataZoom: [
+      {
+        id: "dataZoomX",
+        type: "inside",
+        // xAxisIndex: [0, 1, 2, 3],
+        filterMode: "30%",
+      },
+    ],
+    yAxis: [
+      {
+        type: "value",
+        name: "海拔",
+        axisLine: {
+          lineStyle: {
+            color: colors[3],
+          },
+        },
+      },
+    ],
+    series: [
+      {
+        name: "探空仪",
+        type: "line",
+        sampling: "average",
+        itemStyle: {
+          color: colors[3],
+        },
+        data: [],
+      },
+      {
+        name: "熔断器",
+        type: "line",
+        sampling: "average",
+        itemStyle: {
+          color: colors[0],
+        },
+        data: [],
+      },
+    ],
+  };
+  const [sondeLineArr, sondeArr] = formatSondeData(sondeData);
+
+  heightOption.series[0].data = sondeLineArr;
+  heightOption.xAxis[0].data = sondeArr;
+
+  const [fuseLineArr, fuseArr] = formatFuseData(fuseData, startTime);
+  heightOption.series[1].data = fuseLineArr;
+
+  if (sondeArr.length < fuseArr.length) {
+    for (let i = 0; i < fuseArr.length - sondeArr.length; i++) {
+      heightOption.series[0].data.push(NaN);
+    }
+    heightOption.xAxis[0].data = fuseArr;
+  }
+
+  config.option = heightOption;
+  const buffer = echarts(config);
+  const base64 = Buffer.from(buffer, "utf8").toString("base64");
+  return base64;
+}
+
+/**
+ * 为获取熔断器接口组织参数
+ * @param {object} options 包含站号和探空仪ID
+ */
+async function getOptionForFuse(options) {
+  const { tkyid } = options;
+  const result = { sondeCode: "", startTime: "", endTime: "" };
+  const fuseId = await getFuseId(tkyid);
+  result.sondeCode = fuseId;
+  const sondeTime = await getSondeTime(options);
+  result.startTime = sondeTime.startTime;
+  result.endTime = sondeTime.endTime;
+  return result;
+}
+
+async function heightImageHandler(options) {
+  console.log();
+  info(options, `开始`);
+  const st = new Date() - 0;
+  // 获取质控后的数据
+  let sondeData = [];
+  try {
+    const res = await getDataForImage(options);
+    sondeData = res.data;
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+  const startTime = sondeData[0].seconds * 1000;
+
+  // 获取熔断器数据所需参数
+  let optionForFuse = {};
+  try {
+    optionForFuse = await getOptionForFuse(options);
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+  // 获取熔断器数据
+  let fuseData = [];
+  try {
+    fuseData = await getSoundingMsg(optionForFuse);
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+  const diff = +new Date() - st;
+  info(options, `请求数据${diff / 1000}秒`);
+  // console.log("返回的数据 -- ", fuseData);
+  const imgBase64 = generateHeightImageBase64({
+    sondeData,
+    fuseData,
+    startTime,
+  });
+  info(options, `结束`);
+  return imgBase64;
+}
+
+/**
+ * 处理/heightImage 路由请求
+ * @param request.body.station
+ * @param request.body.tkyid
+ */
+app.post("/heightImage", function (req, res) {
+  const options = req?.body;
+  if (!options || !options.station) {
+    res.status(400).send("parameter 'station' is empty!");
+    warning("parameter 'station' is empty!");
+    return;
+  }
+  if (!options || !options.tkyid) {
+    res.status(400).send("parameter 'tkyid' is empty!");
+    warning("parameter 'tkyid' is empty!");
+    return;
+  }
+
+  heightImageHandler(options)
+    .then((result) => {
+      res.send(result);
+      info(options);
+    })
+    .catch((error) => {
+      err("500 报错信息： " + JSON.stringify(error));
+      res.status(500).send(error);
     });
 });
 

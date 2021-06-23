@@ -9,7 +9,8 @@
     "chalk": "^4.1.1",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "node-echarts-canvas": "^1.2.6"
+    "node-echarts-canvas": "^1.2.6",
+    "request": "^2.88.2"
   },
   "scripts": {
     "dev": "pm2 start app.js --name report --time --watch",
