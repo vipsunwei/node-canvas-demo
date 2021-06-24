@@ -17,7 +17,6 @@ const config = {
 };
 
 const baseUrl = "https://sonde.r7tec.com";
-const url = `${baseUrl}/api/dataset/view.json`;
 const red = chalk.bold.red;
 const orange = chalk.keyword("orange");
 const green = chalk.bold.green;
@@ -47,6 +46,7 @@ function success(msg = "") {
  * @returns {promise} 网络请求返回的promise对象
  */
 function getDataForImage(options) {
+  const url = `${baseUrl}/api/dataset/view.json`;
   if (!options.type || options.type !== "raw") {
     return http(url, options);
   } else {
@@ -547,7 +547,7 @@ function formatFuseData(data, startTime) {
  */
 function getSondeTime(options) {
   const { station, tkyid } = options;
-  const url = "https://sonde.r7tec.com/project/TK_TKY_STAT_DATA.query.do";
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
   return post(url, {
     form: {
       _query_param: JSON.stringify([
@@ -584,7 +584,7 @@ function getSondeTime(options) {
  */
 function getSoundingMsg(options) {
   // const url = "http://192.168.10.39:18082/api/dataset/getSoundingMsg";
-  const url = "https://sonde.r7tec.com/api/dataset/getSoundingMsg";
+  const url = baseUrl + "/api/dataset/getSoundingMsg";
   const params = {
     sondeCode: options.sondeCode,
     startTime: options.startTime,
@@ -599,7 +599,7 @@ function getSoundingMsg(options) {
  * @param {string} sondeCode 探空仪ID
  */
 function getFuseId(sondeCode) {
-  const url = "https://sonde.r7tec.com/project/TK_SONDE_FUSE.query.do";
+  const url = baseUrl + "/project/TK_SONDE_FUSE.query.do";
   return post(url, {
     form: {
       _query_param: JSON.stringify([
@@ -611,7 +611,7 @@ function getFuseId(sondeCode) {
     try {
       const _DATA_ = JSON.parse(res.body)._DATA_;
       if (_DATA_.length) {
-        fuseId = _DATA_[0].FUSECODE;
+        fuseId = _DATA_[0]?.FUSECODE;
       }
     } catch (error) {
       console.log(error);
@@ -760,11 +760,19 @@ function generateHeightImageBase64({ sondeData, fuseData, startTime }) {
 async function getOptionForFuse(options) {
   const { tkyid } = options;
   const result = { sondeCode: "", startTime: "", endTime: "" };
-  const fuseId = await getFuseId(tkyid);
-  result.sondeCode = fuseId;
-  const sondeTime = await getSondeTime(options);
-  result.startTime = sondeTime.startTime;
-  result.endTime = sondeTime.endTime;
+  try {
+    const fuseId = await getFuseId(tkyid);
+    result.sondeCode = fuseId;
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+  try {
+    const sondeTime = await getSondeTime(options);
+    result.startTime = sondeTime.startTime;
+    result.endTime = sondeTime.endTime;
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
   return result;
 }
 
@@ -774,18 +782,20 @@ async function heightImageHandler(options) {
   const st = new Date() - 0;
   // 获取质控后的数据
   let sondeData = [];
+  let startTime = "";
   try {
     const res = await getDataForImage(options);
     sondeData = res.data;
+    startTime = sondeData[0].seconds * 1000;
   } catch (error) {
     err(JSON.stringify(error));
   }
-  const startTime = sondeData[0].seconds * 1000;
 
   // 获取熔断器数据所需参数
   let optionForFuse = {};
   try {
     optionForFuse = await getOptionForFuse(options);
+    if (!startTime) startTime = optionForFuse.startTime;
   } catch (error) {
     err(JSON.stringify(error));
   }
