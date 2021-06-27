@@ -113,10 +113,7 @@ function formatData(data) {
     } else {
       lineArr[2].push(Number(el.pressure));
     }
-    if (
-      isNaN({ key: "aboveSeaLevel", value: el.aboveSeaLevel }) ||
-      el.aboveSeaLevel < 0
-    ) {
+    if (isNaN({ key: "aboveSeaLevel", value: el.aboveSeaLevel }) || el.aboveSeaLevel < 0) {
       lineArr[3].push(NaN);
     } else {
       lineArr[3].push(Number(el.aboveSeaLevel));
@@ -126,9 +123,9 @@ function formatData(data) {
       const minutes = new Date(el.seconds * 1000).getMinutes();
       const seconds = new Date(el.seconds * 1000).getSeconds();
       lineArr[4].push(
-        `${hours < 10 ? "0" + hours : hours}:${
-          minutes < 10 ? "0" + minutes : minutes
-        }:${seconds < 10 ? "0" + seconds : seconds}`
+        `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
+          seconds < 10 ? "0" + seconds : seconds
+        }`
       );
     }
   });
@@ -428,8 +425,7 @@ function formatSondeData(data) {
       if (el.seconds) {
         if (i !== 0) {
           difference =
-            parseInt(new Date(el.seconds).getTime() / 1000) -
-            parseInt(new Date(data[i - 1].seconds).getTime() / 1000);
+            parseInt(new Date(el.seconds).getTime() / 1000) - parseInt(new Date(data[i - 1].seconds).getTime() / 1000);
           if (difference >= 1) {
             for (let i = 0; i < difference - 1; i++) {
               lineArr.push("NaN");
@@ -437,18 +433,14 @@ function formatSondeData(data) {
               minutes = new Date((el.seconds + i) * 1000).getMinutes();
               seconds = new Date((el.seconds + i) * 1000).getSeconds();
               arr.push(
-                `${hours < 10 ? "0" + hours : hours}:${
-                  minutes < 10 ? "0" + minutes : minutes
-                }:${seconds < 10 ? "0" + seconds : seconds}`
+                `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
+                  seconds < 10 ? "0" + seconds : seconds
+                }`
               );
             }
           }
         }
-        if (
-          i !== 0 &&
-          new Date(el.seconds).getTime() !==
-            new Date(data[i - 1].seconds).getTime()
-        ) {
+        if (i !== 0 && new Date(el.seconds).getTime() !== new Date(data[i - 1].seconds).getTime()) {
           if (
             el.aboveSeaLevel === "NaN" ||
             !el.aboveSeaLevel ||
@@ -464,9 +456,9 @@ function formatSondeData(data) {
           minutes = new Date(el.seconds * 1000).getMinutes();
           seconds = new Date(el.seconds * 1000).getSeconds();
           arr.push(
-            `${hours < 10 ? "0" + hours : hours}:${
-              minutes < 10 ? "0" + minutes : minutes
-            }:${seconds < 10 ? "0" + seconds : seconds}`
+            `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
+              seconds < 10 ? "0" + seconds : seconds
+            }`
           );
         }
       }
@@ -497,19 +489,13 @@ function formatFuseData(data, startTime) {
           if (difference >= 1) {
             for (let i = 0; i < difference - 1; i++) {
               lineArr.push("NaN");
-              hours = new Date(
-                new Date(el.timeStamp).getTime() + 1000 * i
-              ).getHours();
-              minutes = new Date(
-                new Date(el.timeStamp).getTime() + 1000 * i
-              ).getMinutes();
-              seconds = new Date(
-                new Date(el.timeStamp).getTime() + 1000 * i
-              ).getSeconds();
+              hours = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getHours();
+              minutes = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getMinutes();
+              seconds = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getSeconds();
               arr.push(
-                `${hours < 10 ? "0" + hours : hours}:${
-                  minutes < 10 ? "0" + minutes : minutes
-                }:${seconds < 10 ? "0" + seconds : seconds}`
+                `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
+                  seconds < 10 ? "0" + seconds : seconds
+                }`
               );
             }
           }
@@ -530,9 +516,9 @@ function formatFuseData(data, startTime) {
         minutes = new Date(el.timeStamp).getMinutes();
         seconds = new Date(el.timeStamp).getSeconds();
         arr.push(
-          `${hours < 10 ? "0" + hours : hours}:${
-            minutes < 10 ? "0" + minutes : minutes
-          }:${seconds < 10 ? "0" + seconds : seconds}`
+          `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
+            seconds < 10 ? "0" + seconds : seconds
+          }`
         );
       }
     });
@@ -558,17 +544,18 @@ function getSondeTime(options) {
   }).then((res) => {
     const sondeTime = { startTime: "", endTime: "" };
     try {
-      const _DATA_ = JSON.parse(res.body)._DATA_;
-      if (_DATA_.length) {
-        sondeTime.startTime = dateStrToTimeStamp(
-          _DATA_[0].FLY_START_TIME
-        ).toString();
-        sondeTime.endTime = dateStrToTimeStamp(
-          _DATA_[0].FINISHED_TIME
-        ).toString();
+      const result = JSON.parse(res.body);
+      if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
+        err(JSON.stringify({ message: "获取开始与结束时间失败", body: res.body }));
+      } else {
+        const _DATA_ = result._DATA_;
+        if (_DATA_.length) {
+          sondeTime.startTime = dateStrToTimeStamp(_DATA_[0].FLY_START_TIME).toString();
+          sondeTime.endTime = dateStrToTimeStamp(_DATA_[0].FINISHED_TIME).toString();
+        }
       }
     } catch (error) {
-      console.log(error);
+      err(JSON.stringify(error));
     }
     return sondeTime;
   });
@@ -602,19 +589,22 @@ function getFuseId(sondeCode) {
   const url = baseUrl + "/project/TK_SONDE_FUSE.query.do";
   return post(url, {
     form: {
-      _query_param: JSON.stringify([
-        { FD: "SONDECODE", OP: "=", WD: sondeCode },
-      ]),
+      _query_param: JSON.stringify([{ FD: "SONDECODE", OP: "=", WD: sondeCode }]),
     },
   }).then((res) => {
     let fuseId = "";
     try {
-      const _DATA_ = JSON.parse(res.body)._DATA_;
-      if (_DATA_.length) {
-        fuseId = _DATA_[0]?.FUSECODE;
+      const result = JSON.parse(res.body);
+      if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
+        err(JSON.stringify({ message: "获取熔断器ID失败", body: res.body }));
+      } else {
+        const _DATA_ = result._DATA_;
+        if (_DATA_.length) {
+          fuseId = _DATA_[0]?.FUSECODE;
+        }
       }
     } catch (error) {
-      console.log(error);
+      err(JSON.stringify(error));
     }
     return fuseId;
   });
@@ -653,13 +643,9 @@ function generateHeightImageBase64({ sondeData, fuseData, startTime }) {
         let str = "";
         for (var i = 0; i < params.length; i++) {
           if (params[i].seriesName === "探空仪") {
-            str += `${params[i].seriesName}：${
-              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
-            }<br>`;
+            str += `${params[i].seriesName}：${isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"}<br>`;
           } else if (params[i].seriesName === "熔断器") {
-            str += `${params[i].seriesName}：${
-              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
-            }`;
+            str += `${params[i].seriesName}：${isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"}`;
           }
         }
         return str;
