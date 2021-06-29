@@ -136,6 +136,8 @@ function formatData(data) {
  * 请求接口获取生成图表所需要的数据
  * @param {string} url 请求数据的接口地址
  * @param {object} obj 参数对象
+ * @param {string} obj.station 站号
+ * @param {string} obj.tkyid 探空仪ID
  * @param {string} type "=raw"表示非质控，不传代表质控
  * @returns
  */
@@ -829,6 +831,73 @@ app.post("/heightImage", function (req, res) {
     })
     .catch((error) => {
       err("500 报错信息： " + JSON.stringify(error));
+      res.status(500).send(error);
+    });
+});
+
+// 30倍抽析，并且只保留每条数据的经纬度和最后一条数据的海拔信息
+function formatStationDataSet(last, left) {
+  const lastTimeHeight = Number(last.aboveSeaLevel);
+  const lnglat = [];
+  left.forEach((value, i) => {
+    if (i % 30 == 0) {
+      lnglat.push([Number(value.longitude), Number(value.latitude)]);
+    }
+  });
+  console.log("抽析前", left.length);
+  lnglat.push([Number(last.longitude), Number(last.latitude)]);
+  console.log("抽析后", lnglat.length);
+  return [lnglat, lastTimeHeight];
+}
+
+// 把经纬度海拔为空为0的去掉
+function deleteZero(data) {
+  return data.filter((item) => item.longitude && item.latitude && Number(item.aboveSeaLevel));
+}
+
+function formatDataSet(dataSetArr, stationArr) {
+  const r = {};
+  dataSetArr.forEach(({ data }, i) => {
+    const fdata = deleteZero(data);
+    const lastData = fdata.pop();
+    const [lnglat, lastTimeHeight] = formatStationDataSet(lastData, fdata);
+    r[stationArr[i].station] = { lnglat, lastTimeHeight };
+  });
+  return r;
+}
+async function getDataSetHandler(options) {
+  try {
+    const promiseArr = [];
+    options.forEach((item) => {
+      const url = `${baseUrl}/api/dataset/view.json`;
+      if (item.station && item.tkyid) {
+        const p = http(url, item, "raw");
+        promiseArr.push(p);
+      }
+    });
+    const dataSetArr = await Promise.all(promiseArr);
+    const dataSet = formatDataSet(dataSetArr, options);
+    return dataSet;
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+}
+app.post("/nodeapi/getdataset", function (req, res) {
+  const options = req?.body;
+  if (!options || !Array.isArray(options)) {
+    res.status(400).send('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
+    warning('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
+    return;
+  }
+  const st = Date.now();
+  getDataSetHandler(options)
+    .then((result) => {
+      const dt = Date.now() - st;
+      console.log("/nodeapi/getdataset用时：", dt / 1000, "秒");
+      res.send(result);
+    })
+    .catch((error) => {
+      err("报错信息： ", JSON.stringify(error));
       res.status(500).send(error);
     });
 });
