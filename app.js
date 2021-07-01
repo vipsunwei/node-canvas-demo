@@ -72,7 +72,8 @@ async function imageHandler(options) {
     info(options, `结束`);
     return imgBase64;
   } catch (error) {
-    throw error;
+    err(error.message);
+    console.trace(error);
   }
 }
 
@@ -395,7 +396,8 @@ app.post("/image", function (request, response) {
       info(options);
     })
     .catch((error) => {
-      err("500 报错信息： " + JSON.stringify(error));
+      err("500 报错信息： " + error.message);
+      console.trace(error);
       response.status(500).send(error);
     });
 });
@@ -557,7 +559,8 @@ function getSondeTime(options) {
         }
       }
     } catch (error) {
-      err(JSON.stringify(error));
+      err(error.message);
+      console.trace(error);
     }
     return sondeTime;
   });
@@ -606,7 +609,8 @@ function getFuseId(sondeCode) {
         }
       }
     } catch (error) {
-      err(JSON.stringify(error));
+      err(error.message);
+      console.trace(error);
     }
     return fuseId;
   });
@@ -752,14 +756,16 @@ async function getOptionForFuse(options) {
     const fuseId = await getFuseId(tkyid);
     result.sondeCode = fuseId;
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   try {
     const sondeTime = await getSondeTime(options);
     result.startTime = sondeTime.startTime;
     result.endTime = sondeTime.endTime;
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   return result;
 }
@@ -776,7 +782,8 @@ async function heightImageHandler(options) {
     sondeData = res.data;
     startTime = sondeData[0].seconds * 1000;
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
 
   // 获取熔断器数据所需参数
@@ -785,23 +792,31 @@ async function heightImageHandler(options) {
     optionForFuse = await getOptionForFuse(options);
     if (!startTime) startTime = optionForFuse.startTime;
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   // 获取熔断器数据
   let fuseData = [];
   try {
     fuseData = await getSoundingMsg(optionForFuse);
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   const diff = +new Date() - st;
   info(options, `请求数据${diff / 1000}秒`);
   // console.log("返回的数据 -- ", fuseData);
-  const imgBase64 = generateHeightImageBase64({
-    sondeData,
-    fuseData,
-    startTime,
-  });
+  let imgBase64 = "";
+  try {
+    imgBase64 = generateHeightImageBase64({
+      sondeData,
+      fuseData,
+      startTime,
+    });
+  } catch (error) {
+    err(error.message);
+    console.trace(error);
+  }
   info(options, `结束`);
   return imgBase64;
 }
@@ -830,7 +845,8 @@ app.post("/heightImage", function (req, res) {
       info(options);
     })
     .catch((error) => {
-      err("500 报错信息： " + JSON.stringify(error));
+      err("500 报错信息： " + error.message);
+      console.trace(error);
       res.status(500).send(error);
     });
 });
@@ -880,7 +896,8 @@ async function getDataSetHandler(options) {
     const dataSetArr = await Promise.all(promiseArr);
     dataSet = formatDataSet(dataSetArr, options);
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   return dataSet;
 }
@@ -929,13 +946,14 @@ function getSondeData(station) {
         }
       }
     } catch (error) {
-      err(JSON.stringify(error));
+      err(error.message);
+      console.trace(error);
     }
     return sondeData;
   });
 }
 
-function formatSondeData(sondeDataArr, stationArr) {
+function formatSondeDataByStation(sondeDataArr, stationArr) {
   const r = {};
   sondeDataArr.forEach((data, i) => {
     r[stationArr[i]] = data;
@@ -964,7 +982,7 @@ async function getHistoryLineHandler(stationArr) {
     promiseArr.push(p);
   });
   const sondeDataArr = await Promise.all(promiseArr);
-  const sondeData = formatSondeData(sondeDataArr, stationArr);
+  const sondeData = formatSondeDataByStation(sondeDataArr, stationArr);
   const options = [];
   Object.values(sondeData).forEach((sonde) => {
     options.push({ station: sonde.stationNum, tkyid: sonde.tkyid });
@@ -974,7 +992,8 @@ async function getHistoryLineHandler(stationArr) {
     const dataSet = await getDataSetHandler(options);
     res = deepObjectMerge(sondeData, dataSet);
   } catch (error) {
-    err(JSON.stringify(error));
+    err(error.message);
+    console.trace(error);
   }
   return res;
 }
@@ -996,7 +1015,8 @@ app.post("/api/node/dataset/gethistoryline", function (req, res) {
       console.log("gethistoryline 用时：", dt / 1000, "秒");
     })
     .catch((error) => {
-      err("报错信息：", JSON.stringify(error));
+      err("报错信息：", error.message);
+      console.trace(error);
       res.status(500).send(error);
     });
   // if (!options || !Array.isArray(options)) {
@@ -1012,7 +1032,8 @@ app.post("/api/node/dataset/gethistoryline", function (req, res) {
   //     console.log("gethistoryline 用时：", dt / 1000, "秒");
   //   })
   //   .catch((error) => {
-  //     err("报错信息： ", JSON.stringify(error));
+  //     err("报错信息： ", error.message);
+  //     console.trace(error);
   //     res.status(500).send(error);
   //   });
 });
