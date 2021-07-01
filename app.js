@@ -866,6 +866,7 @@ function formatDataSet(dataSetArr, stationArr) {
   return r;
 }
 async function getDataSetHandler(options) {
+  let dataSet = {};
   try {
     const promiseArr = [];
     options.forEach((item) => {
@@ -876,30 +877,143 @@ async function getDataSetHandler(options) {
       }
     });
     const dataSetArr = await Promise.all(promiseArr);
-    const dataSet = formatDataSet(dataSetArr, options);
-    return dataSet;
+    dataSet = formatDataSet(dataSetArr, options);
   } catch (error) {
     err(JSON.stringify(error));
   }
+  return dataSet;
 }
-app.post("/nodeapi/getdataset", function (req, res) {
+
+function tanslateFirm(firm) {
+  if (typeof firm !== "number") {
+    firm = Number(firm);
+  }
+  const firmMap = new Map([
+    [7, "华云天仪"],
+    [10, "华云升达"],
+    [11, "华云天仪"],
+    [20, "上海长望"],
+    [30, "太原"],
+    [40, "航天新气象"],
+    [50, "南京大桥"],
+  ]);
+
+  const factory = firmMap.get(firm) || "--";
+
+  return factory;
+}
+function getSondeData(station) {
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
+  return post(url, {
+    form: {
+      _query_param: JSON.stringify([{ FD: "STATION_NUMBER", OP: "=", WD: station }]),
+      data: JSON.stringify({ _PAGE_: { NOWPAGE: 1, SHOWNUM: 1, ORDER: "FINISHED_TIME desc" } }),
+    },
+  }).then((res) => {
+    const sondeData = { tkyid: "", startTime: "", endTime: "", stationName: "", stationNum: "", factoryName: "" };
+    try {
+      const result = JSON.parse(res.body);
+      if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
+        err(JSON.stringify({ message: "获取探空仪数据失败", body: res.body }));
+      } else {
+        const _DATA_ = result._DATA_;
+        if (_DATA_.length) {
+          const sonde = _DATA_[0];
+          sondeData.startTime = sonde.FLY_START_TIME;
+          sondeData.endTime = sonde.EXPLOSION_TIME;
+          sondeData.tkyid = sonde.TKYID;
+          sondeData.stationName = sonde.STATION_NAME;
+          sondeData.stationNum = sonde.STATION_NUMBER;
+          sondeData.factoryName = tanslateFirm(sonde.TKY_FIRM);
+        }
+      }
+    } catch (error) {
+      err(JSON.stringify(error));
+    }
+    return sondeData;
+  });
+}
+
+function formatSondeData(sondeDataArr, stationArr) {
+  const r = {};
+  sondeDataArr.forEach((data, i) => {
+    r[stationArr[i]] = data;
+  });
+  return r;
+}
+/**
+ * 深度合并对象
+ * 如果target(也就是FirstOBJ[key])存在，
+ * 且是对象的话再去调用deepObjectMerge，
+ * 否则就是FirstOBJ[key]里面没这个对象，需要与SecondOBJ[key]合并
+ */
+function deepObjectMerge(FirstOBJ = {}, SecondOBJ = {}) {
+  for (const key in SecondOBJ) {
+    FirstOBJ[key] =
+      FirstOBJ[key] && FirstOBJ[key].toString() === "[object Object]"
+        ? deepObjectMerge(FirstOBJ[key], SecondOBJ[key])
+        : (FirstOBJ[key] = SecondOBJ[key]);
+  }
+  return FirstOBJ;
+}
+async function getHistoryLineHandler(stationArr) {
+  const promiseArr = [];
+  stationArr.forEach((station) => {
+    const p = getSondeData(station);
+    promiseArr.push(p);
+  });
+  const sondeDataArr = await Promise.all(promiseArr);
+  const sondeData = formatSondeData(sondeDataArr, stationArr);
+  const options = [];
+  Object.values(sondeData).forEach((sonde) => {
+    options.push({ station: sonde.stationNum, tkyid: sonde.tkyid });
+  });
+  let res = {};
+  try {
+    const dataSet = await getDataSetHandler(options);
+    res = deepObjectMerge(sondeData, dataSet);
+  } catch (error) {
+    err(JSON.stringify(error));
+  }
+  return res;
+}
+app.post("/api/node/dataset/gethistoryline", function (req, res) {
   const options = req?.body;
-  if (!options || !Array.isArray(options)) {
-    res.status(400).send('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
-    warning('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
+
+  const stations = options.stations;
+  if (!stations || typeof stations !== "string") {
+    res.status(400).send('参数必须是站号字符串，多个以英文逗号(,)拼接，例如："12345,34534,65778,33455,35566"');
+    warning('参数必须是站号字符串，多个以英文逗号(,)拼接，例如："12345,34534,65778,33455,35566"');
     return;
   }
+  const stationArr = stations.split(",");
   const st = Date.now();
-  getDataSetHandler(options)
+  getHistoryLineHandler(stationArr)
     .then((result) => {
-      const dt = Date.now() - st;
-      console.log("/nodeapi/getdataset用时：", dt / 1000, "秒");
       res.send(result);
+      const dt = Date.now() - st;
+      console.log("gethistoryline 用时：", dt / 1000, "秒");
     })
     .catch((error) => {
-      err("报错信息： ", JSON.stringify(error));
+      err("报错信息：", JSON.stringify(error));
       res.status(500).send(error);
     });
+  // if (!options || !Array.isArray(options)) {
+  //   res.status(400).send('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
+  //   warning('参数必须是数组，例如：[{"station":"12345","tkyid": "12345678"}]');
+  //   return;
+  // }
+  // const st = Date.now();
+  // getDataSetHandler(options)
+  //   .then((result) => {
+  //     res.send(result);
+  //     const dt = Date.now() - st;
+  //     console.log("gethistoryline 用时：", dt / 1000, "秒");
+  //   })
+  //   .catch((error) => {
+  //     err("报错信息： ", JSON.stringify(error));
+  //     res.status(500).send(error);
+  //   });
 });
 
 app.listen(port, () => {
