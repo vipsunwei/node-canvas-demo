@@ -836,15 +836,17 @@ app.post("/heightImage", function (req, res) {
 });
 
 // 30倍抽析，并且只保留每条数据的经纬度和最后一条数据的海拔信息
-function formatStationDataSet(last, left) {
+function formatStationDataSet(fdata) {
+  console.log("抽析前", fdata.length);
+  const last = fdata.pop();
+  console.log("pop后", fdata.length);
   const lastTimeHeight = Number(last.aboveSeaLevel);
   const lnglat = [];
-  left.forEach((value, i) => {
+  fdata.forEach((value, i) => {
     if (i % 30 == 0) {
       lnglat.push([Number(value.longitude), Number(value.latitude)]);
     }
   });
-  console.log("抽析前", left.length);
   lnglat.push([Number(last.longitude), Number(last.latitude)]);
   console.log("抽析后", lnglat.length);
   return [lnglat, lastTimeHeight];
@@ -859,8 +861,7 @@ function formatDataSet(dataSetArr, stationArr) {
   const r = {};
   dataSetArr.forEach(({ data }, i) => {
     const fdata = deleteZero(data);
-    const lastData = fdata.pop();
-    const [lnglat, lastTimeHeight] = formatStationDataSet(lastData, fdata);
+    const [lnglat, lastTimeHeight] = formatStationDataSet(fdata);
     r[stationArr[i].station] = { lnglat, lastTimeHeight };
   });
   return r;
