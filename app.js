@@ -4,8 +4,8 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 const echarts = require("node-echarts-canvas");
 const chalk = require("chalk");
-const request = require("request");
 const compression = require("compression");
+const request = require("request");
 const { promisify } = require("util");
 const post = promisify(request.post);
 const config = {
@@ -1041,6 +1041,9 @@ app.post("/api/node/dataset/gethistoryline", function (req, res) {
   //   });
 });
 
+const exportSondeData = require("./export_sonde_data.js");
+
+app.get("/api/node/dataset/exportsondedata", exportSondeData);
 app.listen(port, () => {
   success(`app listening at port:${port}`);
 });
