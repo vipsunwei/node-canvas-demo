@@ -5,6 +5,7 @@ const axios = require("axios");
 const echarts = require("node-echarts-canvas");
 const chalk = require("chalk");
 const request = require("request");
+const compression = require("compression");
 const { promisify } = require("util");
 const post = promisify(request.post);
 const config = {
@@ -370,6 +371,8 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
+
+app.use(compression());
 
 /**
  * 处理/image路由请求
