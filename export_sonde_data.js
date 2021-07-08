@@ -1,6 +1,7 @@
 const { get } = require("./request");
 function exportSondeData(req, res) {
   const sondeCode = req.query.sondeCode;
+  console.log("sondeCode is", sondeCode);
   if (!sondeCode || String(sondeCode).length === 0) {
     res.status(400).send("参数错误");
     return;
