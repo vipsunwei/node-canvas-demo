@@ -49,14 +49,9 @@ async function getSondeRaw(station, tkyid) {
  * @returns {array}
  */
 function formatSondeDataset(sondeData = []) {
-  console.log(sondeData.length);
-  const st = Date.now();
   // 去重
   // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
   sondeData = uniqueFun(sondeData, "seconds");
-  const diff = Date.now() - st;
-  console.log(diff);
-  console.log(sondeData.length);
   // 保留用到的属性，可减小接口返回数据size
   sondeData = sondeData.map((item) =>
     filterFields(item, ["segmemt", "aboveSeaLevel", "temperature", "pressure", "humidity", "seconds"])
@@ -78,6 +73,7 @@ async function getSonde(station, tkyid) {
   } catch (error) {
     err(error.message);
     console.trace(error);
+    console.log("getSonde报错：", station, tkyid);
   }
   return !sondeData ? [] : formatSondeDataset(sondeData);
 }
@@ -95,6 +91,7 @@ async function getFuse(station, tkyid) {
     fuseData = result;
   } catch (error) {
     err(error.message);
+    console.log("getFuse报错:", station, tkyid);
     console.trace(error);
   }
   return fuseData || [];

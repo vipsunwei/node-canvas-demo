@@ -34,9 +34,7 @@ function success(msg = "") {
  * @param {array} fdata
  */
 function formatStationDataSet(fdata) {
-  console.log("抽析前", fdata.length);
   const last = fdata.pop();
-  console.log("pop后", fdata.length);
   const lastTimeHeight = Number(last.aboveSeaLevel);
   const lnglat = [];
   fdata.forEach((value, i) => {
@@ -45,7 +43,6 @@ function formatStationDataSet(fdata) {
     }
   });
   lnglat.push([Number(last.longitude), Number(last.latitude)]);
-  console.log("抽析后", lnglat.length);
   return [lnglat, lastTimeHeight];
 }
 
@@ -150,6 +147,7 @@ function getLastSondeDataByStation(station) {
     } catch (error) {
       err(error.message);
       console.trace(error);
+      console.log("getLastSondeDataByStation报错：", error);
     }
     return sondeData;
   });
@@ -671,6 +669,7 @@ function getSoundingMsg(options) {
     endTime: options.endTime,
     pixel: "0",
   };
+  console.log("getSoundingMsg参数：", JSON.stringify(params));
   return axios.get(url, { params }).then((res) => Object.values(res.data.data));
 }
 
