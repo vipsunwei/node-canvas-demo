@@ -7,6 +7,7 @@ const {
   filterFields,
   getOptionForFuse,
   getSoundingMsg,
+  formatDate,
 } = require("./utils");
 // const { get } = require("./request");
 
@@ -96,7 +97,23 @@ async function getFuse(station, tkyid) {
     console.log("getFuse报错:", station, tkyid);
     console.trace(error);
   }
-  return fuseData || [];
+  return !fuseData ? [] : formatFuseData(fuseData);
+}
+
+/**
+ * 格式化熔断器数据，去除重复数据，增加前端易用属性
+ * @param {array} fuseData 熔断数据数组
+ * @returns {timeStamp, aboveSeaLevel, latitude, longitude}
+ */
+function formatFuseData(fuseData = []) {
+  // 将"2021-07-11T17:30:55.340Z"转成"2021-07-11 19:16:53"格式
+  fuseData = fuseData.map((item) => {
+    item.timeStamp = formatDate(new Date(item.timeStamp));
+    return item;
+  });
+  // 按时间去除重复数据
+  fuseData = uniqueFun(fuseData, "timeStamp");
+  return fuseData;
 }
 
 async function getSondeDataForEcharts(options) {
@@ -143,10 +160,18 @@ function sondeDataForEcharts(req, res) {
   } else {
     options.resTypeArr = resTypePool;
   }
-
+  const st = Date.now();
   getSondeDataForEcharts(options)
     .then((result) => {
       res.send(result);
+      const dt = Date.now() - st;
+      console.log(
+        "站号=" + options.station,
+        "探空仪ID=" + options.tkyid,
+        "sondeDataForEcharts 用时：",
+        dt / 1000,
+        "秒"
+      );
     })
     .catch((error) => {
       err(error.message);
