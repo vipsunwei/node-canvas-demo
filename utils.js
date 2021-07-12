@@ -73,11 +73,11 @@ function formatDataSet(dataSetArr, stationArr) {
  * @param {array} options 包含站号和探空仪ID的对象数组
  */
 async function getDataSetHandler(options) {
+  const url = `${baseUrl}/api/dataset/view.json`;
   let dataSet = {};
   try {
     const promiseArr = [];
     options.forEach((item) => {
-      const url = `${baseUrl}/api/dataset/view.json`;
       if (item.station && item.tkyid) {
         const p = http(url, item, "raw");
         promiseArr.push(p);
@@ -88,6 +88,7 @@ async function getDataSetHandler(options) {
   } catch (error) {
     err(error.message);
     console.trace(error);
+    console.log("获取探空仪原始数据报错：url=" + url, "参数=" + JSON.stringify(options));
   }
   return dataSet;
 }
@@ -147,7 +148,7 @@ function getLastSondeDataByStation(station) {
     } catch (error) {
       err(error.message);
       console.trace(error);
-      console.log("getLastSondeDataByStation报错：", error);
+      console.log("getLastSondeDataByStation报错：url=" + url, "站号=" + station);
     }
     return sondeData;
   });
@@ -647,6 +648,7 @@ function getSondeTime(options) {
     } catch (error) {
       err(error.message);
       console.trace(error);
+      console.log("getSondeTime报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
     }
     return sondeTime;
   });
@@ -669,8 +671,12 @@ function getSoundingMsg(options) {
     endTime: options.endTime,
     pixel: "0",
   };
-  console.log("getSoundingMsg参数：", JSON.stringify(params));
-  return axios.get(url, { params }).then((res) => Object.values(res.data.data));
+  return axios
+    .get(url, { params })
+    .then((res) => Object.values(res.data.data))
+    .catch((error) =>
+      console.log("getSoundingMsg报错：url=" + url, "参数=" + JSON.stringify(params), "errMsg=" + error.message)
+    );
 }
 
 /**
@@ -698,6 +704,7 @@ function getFuseId(sondeCode) {
     } catch (error) {
       err(error.message);
       console.trace(error);
+      console.log("getFuseId报错：url=" + url, "探空仪ID=" + sondeCode);
     }
     return fuseId;
   });

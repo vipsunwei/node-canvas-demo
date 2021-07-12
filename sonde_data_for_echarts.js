@@ -2,13 +2,13 @@ const {
   err,
   baseUrl,
   http: getSondeDataset,
-  arrayToDistinct,
+  // arrayToDistinct,
   uniqueFun,
   filterFields,
   getOptionForFuse,
   getSoundingMsg,
 } = require("./utils");
-const { get } = require("./request");
+// const { get } = require("./request");
 
 const resTypeHandlers = {
   sondeRaw: getSondeRaw,
@@ -39,6 +39,7 @@ async function getSondeRaw(station, tkyid) {
   } catch (error) {
     err(error.message);
     console.trace(error);
+    console.log("getSondeRaw报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
   }
   return !sondeRawData ? [] : formatSondeDataset(sondeRawData);
 }
@@ -73,7 +74,7 @@ async function getSonde(station, tkyid) {
   } catch (error) {
     err(error.message);
     console.trace(error);
-    console.log("getSonde报错：", station, tkyid);
+    console.log("getSonde报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
   }
   return !sondeData ? [] : formatSondeDataset(sondeData);
 }
@@ -87,6 +88,7 @@ async function getFuse(station, tkyid) {
   let fuseData = undefined;
   try {
     const option = await getOptionForFuse({ station, tkyid });
+    console.log("station:" + station, "tkyid:" + tkyid, "getSoundingMsg 参数：", JSON.stringify(option));
     const result = await getSoundingMsg(option);
     fuseData = result;
   } catch (error) {
