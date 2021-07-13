@@ -8,6 +8,7 @@ const {
   getOptionForFuse,
   getSoundingMsg,
   formatDate,
+  formatAboveSeaLevel,
 } = require("./utils");
 // const { get } = require("./request");
 
@@ -87,8 +88,9 @@ async function getSonde(station, tkyid) {
  */
 async function getFuse(station, tkyid) {
   let fuseData = undefined;
+  let option = {};
   try {
-    const option = await getOptionForFuse({ station, tkyid });
+    option = await getOptionForFuse({ station, tkyid });
     console.log("station:" + station, "tkyid:" + tkyid, "getSoundingMsg 参数：", JSON.stringify(option));
     const result = await getSoundingMsg(option);
     fuseData = result;
@@ -97,15 +99,16 @@ async function getFuse(station, tkyid) {
     console.log("getFuse报错:", station, tkyid);
     console.trace(error);
   }
-  return !fuseData ? [] : formatFuseData(fuseData);
+  return !fuseData ? [] : formatFuseData(fuseData, option.startTime);
 }
 
 /**
  * 格式化熔断器数据，去除重复数据，增加前端易用属性
  * @param {array} fuseData 熔断数据数组
- * @returns {timeStamp, aboveSeaLevel, latitude, longitude}
+ * @param {number} startTime 开始时间
+ * @returns [[time, ...], [aboveSeaLevel, ...]]
  */
-function formatFuseData(fuseData = []) {
+function formatFuseData(fuseData, startTime) {
   // 将"2021-07-11T17:30:55.340Z"转成"2021-07-11 19:16:53"格式
   fuseData = fuseData.map((item) => {
     item.timeStamp = formatDate(new Date(item.timeStamp));
@@ -113,7 +116,48 @@ function formatFuseData(fuseData = []) {
   });
   // 按时间去除重复数据
   fuseData = uniqueFun(fuseData, "timeStamp");
+  // 补空
+  fuseData = fillFuseData(fuseData, startTime);
   return fuseData;
+}
+
+/**
+ * 补空并重组数据结构返回前端
+ * @param {array} data 熔断数据
+ * @param {number} startTime 开始时间（秒）
+ * @returns {array} [[时间, ...], [海拔, ...]]
+ */
+function fillFuseData(data, startTime) {
+  const xArr = [];
+  const aboveSeaLevelArr = [];
+  data.forEach((el, i) => {
+    const timeStamp = parseInt(+new Date(el.timeStamp) / 1000);
+    if (timeStamp < startTime) return;
+    if (i === 0) {
+      let timeStamp = parseInt(+new Date(data[0].timeStamp) / 1000);
+      let len = timeStamp - startTime;
+      if (len > 1) {
+        for (let i = 0; i < len - 1; i++) {
+          aboveSeaLevelArr.push(null);
+          xArr.push(formatDate(new Date(startTime * 1000 + i * 1000), "HH:mm:ss"));
+        }
+      }
+      aboveSeaLevelArr.push(formatAboveSeaLevel(data[0].aboveSeaLevel));
+      xArr.push(formatDate(new Date(data[0].timeStamp), "HH:mm:ss"));
+    } else {
+      const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
+      if (len > 1) {
+        for (let i = 0; i < len - 1; i++) {
+          aboveSeaLevelArr.push(null);
+          xArr.push(formatDate(new Date(+new Date(el.timeStamp) + i * 1000), "HH:mm:ss"));
+        }
+      }
+      aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      xArr.push(formatDate(new Date(el.timeStamp), "HH:mm:ss"));
+    }
+  });
+
+  return [xArr, aboveSeaLevelArr];
 }
 
 async function getSondeDataForEcharts(options) {

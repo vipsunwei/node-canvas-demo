@@ -938,6 +938,26 @@ function formatDate(date = new Date(), format = "yyyy-MM-dd HH:mm:ss") {
   return format;
 }
 
+/**
+ * 格式化海拔的值
+ * @param {number|string} aboveSeaLevel 海拔
+ * @returns {number|null}
+ */
+function formatAboveSeaLevel(aboveSeaLevel) {
+  if (
+    aboveSeaLevel === "NaN" ||
+    aboveSeaLevel === NaN ||
+    !aboveSeaLevel ||
+    aboveSeaLevel === "99999.000000" ||
+    aboveSeaLevel === "0.000000" ||
+    aboveSeaLevel < 0 ||
+    aboveSeaLevel >= 40000
+  ) {
+    return null;
+  }
+  return Number(aboveSeaLevel);
+}
+
 module.exports = {
   filterFields,
   uniqueFun,
@@ -964,4 +984,5 @@ module.exports = {
   generateImageBase64,
   getFuseId,
   formatDate,
+  formatAboveSeaLevel,
 };
