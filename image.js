@@ -3,7 +3,7 @@ const {
   warning,
   err,
   getDataForImage,
-  // formatData,
+  formatData,
   generateImageBase64,
   formatSondeDataset,
 } = require("./utils.js");
@@ -22,6 +22,8 @@ async function imageHandler(options) {
     // console.log("返回的数据 -- ", data);
     const fdata = formatSondeDataset(data);
     // const imgBase64 = formatData(data);
+    // console.log(imgBase64[3].length, imgBase64[4].length);
+    // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);
     const imgBase64 = generateImageBase64(fdata);
     return imgBase64;
   } catch (error) {

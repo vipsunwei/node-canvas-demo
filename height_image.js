@@ -8,6 +8,7 @@ const {
   generateHeightImageBase64,
   formatSondeDataset,
   formatFuseData,
+  formatData,
 } = require("./utils.js");
 
 async function heightImageHandler(options) {
@@ -22,6 +23,7 @@ async function heightImageHandler(options) {
     sondeData = res.data;
     startTime = sondeData[0].seconds;
     sondeData = formatSondeDataset(sondeData);
+    // sondeData = formatData(sondeData);
   } catch (error) {
     err(error.message);
     console.trace(error);

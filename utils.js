@@ -212,7 +212,7 @@ function isNaN({ key, value }) {
 /**
  * 格式化echarts画图需要的data数组
  * @param {array} data 数组
- * @returns 数组
+ * @returns 数组 [温, 湿, 压, 高, 时间]
  */
 function formatData(data) {
   const lineArr = [[], [], [], [], []];
@@ -481,6 +481,15 @@ function generateImageBase64(lineArr) {
   defaultOptions.xAxis[1].data = lineArr[0];
   defaultOptions.xAxis[2].data = lineArr[0];
   defaultOptions.xAxis[3].data = lineArr[0];
+
+  // defaultOptions.series[0].data = lineArr[0];
+  // defaultOptions.series[1].data = lineArr[1];
+  // defaultOptions.series[2].data = lineArr[2];
+  // defaultOptions.series[3].data = lineArr[3];
+  // defaultOptions.xAxis[0].data = lineArr[4];
+  // defaultOptions.xAxis[1].data = lineArr[4];
+  // defaultOptions.xAxis[2].data = lineArr[4];
+  // defaultOptions.xAxis[3].data = lineArr[4];
   config.option = defaultOptions;
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
@@ -840,6 +849,23 @@ function generateHeightImageBase64(sondeData, fuseData) {
     heightOption.xAxis[0].data = xFuseAboveSeaLevelArr;
   }
 
+  // let sondeAboveSeaLevelArr = sondeData[3];
+  // let xSondeAboveSeaLevelArr = sondeData[4];
+  // heightOption.series[0].data = sondeAboveSeaLevelArr;
+  // heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
+
+  // let xFuseAboveSeaLevelArr = fuseData[0];
+  // let fuseAboveSeaLevelArr = fuseData[1];
+  // heightOption.series[1].data = fuseAboveSeaLevelArr;
+
+  // if (xSondeAboveSeaLevelArr.length < xFuseAboveSeaLevelArr.length) {
+  //   let len = xFuseAboveSeaLevelArr.length - xSondeAboveSeaLevelArr.length;
+  //   for (let i = 0; i < len; i++) {
+  //     heightOption.series[0].data.push(NaN);
+  //   }
+  //   heightOption.xAxis[0].data = xFuseAboveSeaLevelArr;
+  // }
+
   config.option = heightOption;
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
@@ -1002,6 +1028,11 @@ function formatSondeDataset(sondeData = []) {
   // 去重
   // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
   sondeData = uniqueFun(sondeData, "seconds");
+  const uCount = sondeData.length;
+  console.log("探空仪数据去重后余 = " + uCount);
+  sondeData = removeSegmemt(sondeData);
+  const nonSegmemtCount = uCount - sondeData.length;
+  console.log("没有标记位的有 = " + nonSegmemtCount);
   // 补空并重组返回结构
   sondeData = fillSondeData(sondeData);
   // 保留用到的属性，可减小接口返回数据size
@@ -1010,7 +1041,14 @@ function formatSondeDataset(sondeData = []) {
   // );
   return sondeData;
 }
-
+/**
+ * 把segmemt为空的去掉
+ * @param {array} data 探空仪数据数组
+ * @returns {array}
+ */
+function removeSegmemt(data) {
+  return data.filter((item) => item.segmemt);
+}
 /**
  * 补空并重组返回结构
  * @param {array} data
