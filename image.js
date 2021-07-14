@@ -1,4 +1,12 @@
-const { info, warning, err, getDataForImage, formatData, generateImageBase64 } = require("./utils.js");
+const {
+  info,
+  warning,
+  err,
+  getDataForImage,
+  // formatData,
+  generateImageBase64,
+  formatSondeDataset,
+} = require("./utils.js");
 
 /**
  * 接口处理函数
@@ -7,16 +15,14 @@ const { info, warning, err, getDataForImage, formatData, generateImageBase64 } =
  */
 async function imageHandler(options) {
   try {
-    console.log();
-    info(options, `开始`);
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
     info(options, `请求数据${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
-    const lineArr = formatData(data);
-    const imgBase64 = generateImageBase64(lineArr);
-    info(options, `结束`);
+    const fdata = formatSondeDataset(data);
+    // const imgBase64 = formatData(data);
+    const imgBase64 = generateImageBase64(fdata);
     return imgBase64;
   } catch (error) {
     err(error.message);
