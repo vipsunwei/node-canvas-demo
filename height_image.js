@@ -6,19 +6,22 @@ const {
   getOptionForFuse,
   getSoundingMsg,
   generateHeightImageBase64,
+  formatSondeDataset,
+  formatFuseData,
 } = require("./utils.js");
 
 async function heightImageHandler(options) {
-  console.log();
-  info(options, `开始`);
-  const st = new Date() - 0;
   // 获取质控后的数据
   let sondeData = [];
   let startTime = "";
   try {
+    const st = Date.now();
     const res = await getDataForImage(options);
+    const d = Date.now() - st;
+    info(options, "获取探空仪质控数据", `用时：${d / 1000}秒`);
     sondeData = res.data;
-    startTime = sondeData[0].seconds * 1000;
+    startTime = sondeData[0].seconds;
+    sondeData = formatSondeDataset(sondeData);
   } catch (error) {
     err(error.message);
     console.trace(error);
@@ -27,8 +30,14 @@ async function heightImageHandler(options) {
   // 获取熔断器数据所需参数
   let optionForFuse = {};
   try {
+    const st = Date.now();
     optionForFuse = await getOptionForFuse(options);
-    if (!startTime) startTime = optionForFuse.startTime;
+    const d = Date.now() - st;
+    info(options, "获取开始与结束时间", `用时：${d / 1000}秒`);
+    // console.log(startTime, optionForFuse.startTime, optionForFuse.endTime);
+    if (!startTime) {
+      startTime = optionForFuse.startTime;
+    }
   } catch (error) {
     err(error.message);
     console.trace(error);
@@ -36,26 +45,23 @@ async function heightImageHandler(options) {
   // 获取熔断器数据
   let fuseData = [];
   try {
+    const st = Date.now();
     fuseData = await getSoundingMsg(optionForFuse);
+    const d = Date.now() - st;
+    info(options, "获取熔断器数据", "用时：" + d / 1000 + "秒");
+    fuseData = formatFuseData(fuseData, startTime);
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
-  const diff = +new Date() - st;
-  info(options, `请求数据${diff / 1000}秒`);
   // console.log("返回的数据 -- ", fuseData);
   let imgBase64 = "";
   try {
-    imgBase64 = generateHeightImageBase64({
-      sondeData,
-      fuseData,
-      startTime,
-    });
+    imgBase64 = generateHeightImageBase64(sondeData, fuseData);
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
-  info(options, `结束`);
   return imgBase64;
 }
 
@@ -76,11 +82,12 @@ function heightImage(req, res) {
     warning("parameter 'tkyid' is empty!");
     return;
   }
-
+  const st = Date.now();
   heightImageHandler(options)
     .then((result) => {
       res.send(result);
-      info(options);
+      const d = Date.now() - st;
+      info(options, "高程图接口", `用时：${d / 1000}秒`);
     })
     .catch((error) => {
       err("500 报错信息： " + error.message);
