@@ -18,7 +18,7 @@ async function imageHandler(options) {
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
-    info(options, `请求数据${diff / 1000}秒`);
+    info(options, options.type === "raw" ? "原始数据" : "质控数据", `用时：${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
     const fdata = formatSondeDataset(data);
     // const imgBase64 = formatData(data);
@@ -48,11 +48,12 @@ function image(req, res) {
     warning("parameter 'tkyid' is empty!");
     return;
   }
-
+  const st = Date.now();
   imageHandler(options)
     .then((result) => {
       res.send(result);
-      info(options);
+      const d = Date.now() - st;
+      info(options, options.type === "raw" ? "生成原始数据廓线图" : "生成质控数据廓线图", `接口总用时：${d / 1000}秒`);
     })
     .catch((error) => {
       err("500 报错信息： " + error.message);

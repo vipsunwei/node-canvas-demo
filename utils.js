@@ -12,10 +12,9 @@ const green = chalk.bold.green;
 const yellow = chalk.bold.yellow;
 const blueBright = chalk.bold.blueBright;
 
-function info(options, msg = "") {
+function info(options, typeText, msg = "") {
   const stationText = `${yellow(options.station)}`;
   const tkyidText = `${yellow(options.tkyid)}`;
-  const typeText = options.type === "raw" ? yellow("非质控") : yellow("质控");
   const m = `${stationText} - ${tkyidText} - ${typeText} - ${blueBright(msg)}`;
   console.log(m);
 }
@@ -474,14 +473,14 @@ function generateImageBase64(lineArr) {
       },
     ],
   };
-  defaultOptions.series[0].data = lineArr[0];
-  defaultOptions.series[1].data = lineArr[1];
-  defaultOptions.series[2].data = lineArr[2];
-  defaultOptions.series[3].data = lineArr[3];
-  defaultOptions.xAxis[0].data = lineArr[4];
-  defaultOptions.xAxis[1].data = lineArr[4];
-  defaultOptions.xAxis[2].data = lineArr[4];
-  defaultOptions.xAxis[3].data = lineArr[4];
+  defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
+  defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
+  defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
+  defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
+  defaultOptions.xAxis[0].data = lineArr[0];
+  defaultOptions.xAxis[1].data = lineArr[0];
+  defaultOptions.xAxis[2].data = lineArr[0];
+  defaultOptions.xAxis[3].data = lineArr[0];
   config.option = defaultOptions;
   const buffer = echarts(config);
   const base64 = Buffer.from(buffer, "utf8").toString("base64");
@@ -559,63 +558,63 @@ function formatSondeData(data) {
 }
 
 /**
- * 格式化熔断器画图数据
- * @param {array} data
- * @param {number} startTime
+ * 格式化熔断器数据，去除重复数据，增加前端易用属性
+ * @param {array} fuseData 熔断数据数组
+ * @param {number} startTime 开始时间(秒)时间戳
+ * @returns [[time, ...], [aboveSeaLevel, ...]]
  */
-function formatFuseData(data, startTime) {
-  const lineArr = [];
-  const arr = [];
-  let difference = 0;
-  let hours = 0;
-  let minutes = 0;
-  let seconds = 0;
-  try {
-    data.forEach((el, i) => {
-      if (el.timeStamp && new Date(el.timeStamp).getTime() >= startTime) {
-        if (i !== 0) {
-          difference =
-            parseInt(new Date(el.timeStamp).getTime() / 1000) -
-            parseInt(new Date(data[i - 1].timeStamp).getTime() / 1000);
-          if (difference >= 1) {
-            for (let i = 0; i < difference - 1; i++) {
-              lineArr.push("NaN");
-              hours = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getHours();
-              minutes = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getMinutes();
-              seconds = new Date(new Date(el.timeStamp).getTime() + 1000 * i).getSeconds();
-              arr.push(
-                `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
-                  seconds < 10 ? "0" + seconds : seconds
-                }`
-              );
-            }
-          }
-        }
-        if (
-          el.aboveSeaLevel === "NaN" ||
-          !el.aboveSeaLevel ||
-          el.aboveSeaLevel === "99999.000000" ||
-          el.aboveSeaLevel === "0.000000" ||
-          el.aboveSeaLevel < 0 ||
-          el.aboveSeaLevel >= 40000
-        ) {
-          lineArr.push("NaN");
-        } else {
-          lineArr.push(Number(el.aboveSeaLevel));
-        }
-        hours = new Date(el.timeStamp).getHours();
-        minutes = new Date(el.timeStamp).getMinutes();
-        seconds = new Date(el.timeStamp).getSeconds();
-        arr.push(
-          `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
-            seconds < 10 ? "0" + seconds : seconds
-          }`
-        );
-      }
-    });
-  } catch (error) {}
-  return [lineArr, arr];
+function formatFuseData(fuseData, startTime) {
+  // 将"2021-07-11T17:30:55.340Z"转成"2021-07-11 19:16:53"格式
+  fuseData = fuseData.map((item) => {
+    item.timeStamp = formatDate(new Date(item.timeStamp));
+    return item;
+  });
+  // 按时间去除重复数据
+  fuseData = uniqueFun(fuseData, "timeStamp");
+  // 补空并重组数据结构
+  fuseData = fillFuseData(fuseData, startTime);
+  return fuseData;
 }
+
+/**
+ * 补空并重组数据结构返回前端
+ * @param {array} data 熔断数据
+ * @param {number} startTime 开始时间（秒）
+ * @returns {array} [[时间, ...], [海拔, ...]]
+ */
+function fillFuseData(data, startTime) {
+  const xArr = [];
+  const aboveSeaLevelArr = [];
+  data.forEach((el, i) => {
+    const timeStamp = parseInt(+new Date(el.timeStamp) / 1000);
+    if (timeStamp < startTime) return;
+    if (i === 0) {
+      let timeStamp = parseInt(+new Date(data[0].timeStamp) / 1000);
+      let len = timeStamp - startTime;
+      if (len > 1) {
+        for (let i = 0; i < len - 1; i++) {
+          aboveSeaLevelArr.push(null);
+          xArr.push(formatDate(new Date(startTime * 1000 + i * 1000), "HH:mm:ss"));
+        }
+      }
+      aboveSeaLevelArr.push(formatAboveSeaLevel(data[0].aboveSeaLevel));
+      xArr.push(formatDate(new Date(data[0].timeStamp), "HH:mm:ss"));
+    } else {
+      const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
+      if (len > 1) {
+        for (let i = 0; i < len - 1; i++) {
+          aboveSeaLevelArr.push(null);
+          xArr.push(formatDate(new Date(+new Date(el.timeStamp) + i * 1000), "HH:mm:ss"));
+        }
+      }
+      aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      xArr.push(formatDate(new Date(el.timeStamp), "HH:mm:ss"));
+    }
+  });
+
+  return [xArr, aboveSeaLevelArr];
+}
+
 /**
  * 根据探空仪ID和站号获取开始时间和结束时间
  * @param {object} options
@@ -712,12 +711,10 @@ function getFuseId(sondeCode) {
 
 /**
  * 生成高程图base64数据
- * @param {object} data
- * @param {array} data.sondeData 探空仪数据
- * @param {array} data.fuseData 熔断器数据
- * @param {number} data.startTime 放球开始时间
+ * @param {array} sondeData 探空仪数据
+ * @param {array} fuseData 熔断器数据
  */
-function generateHeightImageBase64({ sondeData, fuseData, startTime }) {
+function generateHeightImageBase64(sondeData, fuseData) {
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -826,19 +823,21 @@ function generateHeightImageBase64({ sondeData, fuseData, startTime }) {
       },
     ],
   };
-  const [sondeLineArr, sondeArr] = formatSondeData(sondeData);
+  let sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
+  let xSondeAboveSeaLevelArr = sondeData[0];
+  heightOption.series[0].data = sondeAboveSeaLevelArr;
+  heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
 
-  heightOption.series[0].data = sondeLineArr;
-  heightOption.xAxis[0].data = sondeArr;
+  let xFuseAboveSeaLevelArr = fuseData[0];
+  let fuseAboveSeaLevelArr = fuseData[1];
+  heightOption.series[1].data = fuseAboveSeaLevelArr;
 
-  const [fuseLineArr, fuseArr] = formatFuseData(fuseData, startTime);
-  heightOption.series[1].data = fuseLineArr;
-
-  if (sondeArr.length < fuseArr.length) {
-    for (let i = 0; i < fuseArr.length - sondeArr.length; i++) {
+  if (xSondeAboveSeaLevelArr.length < xFuseAboveSeaLevelArr.length) {
+    let len = xFuseAboveSeaLevelArr.length - xSondeAboveSeaLevelArr.length;
+    for (let i = 0; i < len; i++) {
       heightOption.series[0].data.push(NaN);
     }
-    heightOption.xAxis[0].data = fuseArr;
+    heightOption.xAxis[0].data = xFuseAboveSeaLevelArr;
   }
 
   config.option = heightOption;
@@ -939,6 +938,42 @@ function formatDate(date = new Date(), format = "yyyy-MM-dd HH:mm:ss") {
 }
 
 /**
+ * 格式化温度的值
+ * @param {number|string} temperature 温度
+ * @returns {number|null}
+ */
+function formatTemperature(temperature) {
+  if (temperature === "NaN" || !temperature || temperature === "99999.000000" || temperature > 200) {
+    return null;
+  }
+  return Number(temperature).toFixed(1) - 0;
+}
+
+/**
+ * 格式化湿度的值
+ * @param {number|string} humidity 湿度
+ * @returns {number|null}
+ */
+function formatHumidity(humidity) {
+  if (humidity === "NaN" || !humidity || humidity === "99999.000000" || humidity > 120) {
+    return null;
+  }
+  return Number(humidity).toFixed(1) - 0;
+}
+
+/**
+ * 格式化气压的值
+ * @param {number|string} pressure 气压
+ * @returns {number|null}
+ */
+function formatPressure(pressure) {
+  if (pressure === "NaN" || !pressure || pressure === "99999.000000" || pressure > 2000) {
+    return null;
+  }
+  return Number(pressure).toFixed(1) - 0;
+}
+
+/**
  * 格式化海拔的值
  * @param {number|string} aboveSeaLevel 海拔
  * @returns {number|null}
@@ -955,7 +990,111 @@ function formatAboveSeaLevel(aboveSeaLevel) {
   ) {
     return null;
   }
-  return Number(aboveSeaLevel);
+  return Number(aboveSeaLevel).toFixed(1) - 0;
+}
+
+/**
+ * 格式化探空仪数据用于画廓线图
+ * @param {array} sondeData 待格式化的探空仪数据数组
+ * @returns {array}
+ */
+function formatSondeDataset(sondeData = []) {
+  // 去重
+  // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
+  sondeData = uniqueFun(sondeData, "seconds");
+  // 补空并重组返回结构
+  sondeData = fillSondeData(sondeData);
+  // 保留用到的属性，可减小接口返回数据size
+  // sondeData = sondeData.map((item) =>
+  //   filterFields(item, ["segmemt", "aboveSeaLevel", "temperature", "pressure", "humidity", "seconds"])
+  // );
+  return sondeData;
+}
+
+/**
+ * 补空并重组返回结构
+ * @param {array} data
+ * @returns {array}
+ * [
+ *    [time, ...],
+ *    [[UP:temperature, ...], [HOR:temperature, ...], [DOWN:temperature, ...]],
+ *    [[UP:humidity, ...], [HOR:humidity, ...], [DOWN:humidity, ...]],
+ *    [[UP:pressure, ...], [HOR:pressure, ...], [DOWN:pressure, ...]],
+ *    [[UP:aboveSeaLevel, ...], [HOR:aboveSeaLevel, ...], [DOWN:aboveSeaLevel, ...]]
+ * ]
+ */
+function fillSondeData(data) {
+  let xArr = [],
+    temperatureArr = [[], [], []],
+    humidityArr = [[], [], []],
+    pressureArr = [[], [], []],
+    aboveSeaLevelArr = [[], [], []];
+  data.forEach((el, i) => {
+    if (i === 0) {
+      xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
+      temperatureArr = setTemperatureArr(temperatureArr, el);
+      humidityArr = setHumidityArr(humidityArr, el);
+      pressureArr = setPressureArr(pressureArr, el);
+      aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+    } else {
+      const seconds = data[i - 1].seconds;
+      const len = el.seconds - seconds;
+      if (len > 1) {
+        for (let i = 0; i < len - 1; i++) {
+          xArr.push(formatDate(new Date(seconds * 1000 + i * 1000), "HH:mm:ss"));
+          temperatureArr = setTemperatureArr(temperatureArr, el, null);
+          humidityArr = setHumidityArr(humidityArr, el, null);
+          pressureArr = setPressureArr(pressureArr, el, null);
+          aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el, null);
+        }
+      }
+      xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
+      temperatureArr = setTemperatureArr(temperatureArr, el);
+      humidityArr = setHumidityArr(humidityArr, el);
+      pressureArr = setPressureArr(pressureArr, el);
+      aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+    }
+  });
+
+  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr];
+}
+
+function setTemperatureArr(temperatureArr, el, fill) {
+  el.segmemt === "UP" &&
+    (fill === null ? temperatureArr[0].push(null) : temperatureArr[0].push(formatTemperature(el.temperature)));
+  el.segmemt === "HOR" &&
+    (fill === null ? temperatureArr[1].push(null) : temperatureArr[1].push(formatTemperature(el.temperature)));
+  el.segmemt === "DOWN" &&
+    (fill === null ? temperatureArr[2].push(null) : temperatureArr[2].push(formatTemperature(el.temperature)));
+  return temperatureArr;
+}
+
+function setHumidityArr(humidityArr, el, fill) {
+  el.segmemt === "UP" && (fill === null ? humidityArr[0].push(null) : humidityArr[0].push(formatHumidity(el.humidity)));
+  el.segmemt === "HOR" &&
+    (fill === null ? humidityArr[1].push(null) : humidityArr[1].push(formatHumidity(el.humidity)));
+  el.segmemt === "DOWN" &&
+    (fill === null ? humidityArr[2].push(null) : humidityArr[2].push(formatHumidity(el.humidity)));
+  return humidityArr;
+}
+
+function setPressureArr(pressureArr, el, fill) {
+  el.segmemt === "UP" && (fill === null ? pressureArr[0].push(null) : pressureArr[0].push(formatPressure(el.pressure)));
+  el.segmemt === "HOR" &&
+    (fill === null ? pressureArr[1].push(null) : pressureArr[1].push(formatPressure(el.pressure)));
+  el.segmemt === "DOWN" &&
+    (fill === null ? pressureArr[2].push(null) : pressureArr[2].push(formatPressure(el.pressure)));
+  return pressureArr;
+}
+
+function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
+  el.segmemt === "UP" &&
+    (fill === null ? aboveSeaLevelArr[0].push(null) : aboveSeaLevelArr[0].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+  el.segmemt === "HOR" &&
+    (fill === null ? aboveSeaLevelArr[1].push(null) : aboveSeaLevelArr[1].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+  el.segmemt === "DOWN" &&
+    (fill === null ? aboveSeaLevelArr[2].push(null) : aboveSeaLevelArr[2].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+  return aboveSeaLevelArr;
 }
 
 module.exports = {
@@ -984,5 +1123,11 @@ module.exports = {
   generateImageBase64,
   getFuseId,
   formatDate,
+  formatTemperature,
+  formatHumidity,
+  formatPressure,
   formatAboveSeaLevel,
+  formatSondeDataset,
+  fillSondeData,
+  formatFuseData,
 };
