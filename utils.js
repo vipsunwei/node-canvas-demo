@@ -509,64 +509,6 @@ function dateStrToTimeStamp(dateStr) {
 }
 
 /**
- * 格式化探空仪画图数据
- * @param {array} data
- */
-function formatSondeData(data) {
-  const lineArr = [];
-  const arr = [];
-  let difference = 0;
-  let hours = 0;
-  let minutes = 0;
-  let seconds = 0;
-  try {
-    data.forEach((el, i) => {
-      if (el.seconds) {
-        if (i !== 0) {
-          difference =
-            parseInt(new Date(el.seconds).getTime() / 1000) - parseInt(new Date(data[i - 1].seconds).getTime() / 1000);
-          if (difference >= 1) {
-            for (let i = 0; i < difference - 1; i++) {
-              lineArr.push("NaN");
-              hours = new Date((el.seconds + i) * 1000).getHours();
-              minutes = new Date((el.seconds + i) * 1000).getMinutes();
-              seconds = new Date((el.seconds + i) * 1000).getSeconds();
-              arr.push(
-                `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
-                  seconds < 10 ? "0" + seconds : seconds
-                }`
-              );
-            }
-          }
-        }
-        if (i !== 0 && new Date(el.seconds).getTime() !== new Date(data[i - 1].seconds).getTime()) {
-          if (
-            el.aboveSeaLevel === "NaN" ||
-            !el.aboveSeaLevel ||
-            el.aboveSeaLevel === "99999.000000" ||
-            el.aboveSeaLevel === "0.000000" ||
-            el.aboveSeaLevel < 0
-          ) {
-            lineArr.push("NaN");
-          } else {
-            lineArr.push(Number(el.aboveSeaLevel));
-          }
-          hours = new Date(el.seconds * 1000).getHours();
-          minutes = new Date(el.seconds * 1000).getMinutes();
-          seconds = new Date(el.seconds * 1000).getSeconds();
-          arr.push(
-            `${hours < 10 ? "0" + hours : hours}:${minutes < 10 ? "0" + minutes : minutes}:${
-              seconds < 10 ? "0" + seconds : seconds
-            }`
-          );
-        }
-      }
-    });
-  } catch (error) {}
-  return [lineArr, arr];
-}
-
-/**
  * 格式化熔断器数据，去除重复数据，增加前端易用属性
  * @param {array} fuseData 熔断数据数组
  * @param {number} startTime 开始时间(秒)时间戳
@@ -889,7 +831,7 @@ async function getOptionForFuse(options) {
   try {
     const sondeTime = await getSondeTime(options);
     result.startTime = sondeTime.startTime;
-    result.endTime = sondeTime.endTime;
+    result.endTime = String(Number(sondeTime.endTime) + 6 * 60 * 60); // 结束时间外扩6小时
   } catch (error) {
     err(error.message);
     console.trace(error);
@@ -1025,9 +967,12 @@ function formatAboveSeaLevel(aboveSeaLevel) {
  * @returns {array}
  */
 function formatSondeDataset(sondeData = []) {
+  console.log("探空仪数据 = " + sondeData.length);
   // 去重
   // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
   sondeData = uniqueFun(sondeData, "seconds");
+  // 把segmemt为空的，取前一条数据中的segmemt补到空的位置上
+  sondeData = fillSegmemt(sondeData);
   const uCount = sondeData.length;
   console.log("探空仪数据去重后余 = " + uCount);
   sondeData = removeSegmemt(sondeData);
@@ -1040,6 +985,21 @@ function formatSondeDataset(sondeData = []) {
   //   filterFields(item, ["segmemt", "aboveSeaLevel", "temperature", "pressure", "humidity", "seconds"])
   // );
   return sondeData;
+}
+
+/**
+ * 把segmemt为空的，取前一条的segmemt值，补上
+ * @param {array} data 去重后的探空仪数据数组
+ * @returns {array}
+ */
+function fillSegmemt(data) {
+  data.forEach((el, i) => {
+    if (i === 0) {
+      return;
+    }
+    !el.segmemt && (el.segmemt = data[i - 1].segmemt);
+  });
+  return data;
 }
 /**
  * 把segmemt为空的去掉
