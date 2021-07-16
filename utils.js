@@ -831,7 +831,7 @@ async function getOptionForFuse(options) {
   try {
     const sondeTime = await getSondeTime(options);
     result.startTime = sondeTime.startTime;
-    result.endTime = String(Number(sondeTime.endTime) + 6 * 60 * 60); // 结束时间外扩6小时
+    result.endTime = sondeTime.endTime && String(Number(sondeTime.endTime) + 6 * 60 * 60); // 结束时间外扩6小时
   } catch (error) {
     err(error.message);
     console.trace(error);

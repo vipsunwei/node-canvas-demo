@@ -8,22 +8,21 @@ const {
   generateHeightImageBase64,
   formatSondeDataset,
   formatFuseData,
-  formatData,
 } = require("./utils.js");
 
 async function heightImageHandler(options) {
   // 获取质控后的数据
-  let sondeData = [];
+  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  let sondeData = undefined;
   let startTime = "";
   try {
     const st = Date.now();
     const res = await getDataForImage(options);
     const d = Date.now() - st;
-    info(options, "获取探空仪质控数据", `用时：${d / 1000}秒`);
+    info(options, options.type === "raw" ? "获取探空仪原始数据" : "获取探空仪质控数据", `用时：${d / 1000}秒`);
     sondeData = res.data;
-    startTime = sondeData[0].seconds;
-    sondeData = formatSondeDataset(sondeData);
-    // sondeData = formatData(sondeData);
+    startTime = (sondeData && sondeData[0]?.seconds) || startTime;
+    sondeData = !sondeData ? result : formatSondeDataset(sondeData);
   } catch (error) {
     err(error.message);
     console.trace(error);

@@ -15,12 +15,13 @@ const {
  */
 async function imageHandler(options) {
   try {
+    let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
     const st = new Date() - 0;
     const { data } = await getDataForImage(options);
     const diff = +new Date() - st;
     info(options, options.type === "raw" ? "原始数据" : "质控数据", `用时：${diff / 1000}秒`);
     // console.log("返回的数据 -- ", data);
-    const fdata = formatSondeDataset(data);
+    const fdata = !data ? result : formatSondeDataset(data);
     // const imgBase64 = formatData(data);
     // console.log(imgBase64[3].length, imgBase64[4].length);
     // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);

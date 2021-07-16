@@ -31,6 +31,7 @@ async function getSondeRaw(station, tkyid) {
   // }
   const url = `${baseUrl}/api/dataset/view.json`;
   let sondeRawData = undefined;
+  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   try {
     const { data } = await getSondeDataset(url, { station, tkyid }, "raw");
     sondeRawData = data;
@@ -39,7 +40,7 @@ async function getSondeRaw(station, tkyid) {
     console.trace(error);
     console.log("getSondeRaw报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
   }
-  return !sondeRawData ? [] : formatSondeDataset(sondeRawData);
+  return !sondeRawData ? result : formatSondeDataset(sondeRawData);
 }
 
 /**
@@ -50,6 +51,7 @@ async function getSondeRaw(station, tkyid) {
 async function getSonde(station, tkyid) {
   const url = `${baseUrl}/api/dataset/view.json`;
   let sondeData = undefined;
+  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   try {
     const { data } = await getSondeDataset(url, { station, tkyid });
     sondeData = data;
@@ -58,7 +60,7 @@ async function getSonde(station, tkyid) {
     console.trace(error);
     console.log("getSonde报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
   }
-  return !sondeData ? [] : formatSondeDataset(sondeData);
+  return !sondeData ? result : formatSondeDataset(sondeData);
 }
 
 /**
@@ -68,6 +70,7 @@ async function getSonde(station, tkyid) {
  */
 async function getFuse(station, tkyid) {
   let fuseData = undefined;
+  let result = [[], []];
   let option = {};
   try {
     option = await getOptionForFuse({ station, tkyid });
@@ -79,7 +82,7 @@ async function getFuse(station, tkyid) {
     console.log("getFuse报错:", station, tkyid);
     console.trace(error);
   }
-  return !fuseData ? [] : formatFuseData(fuseData, option.startTime);
+  return !fuseData ? result : formatFuseData(fuseData, option.startTime);
 }
 
 async function getSondeDataForEcharts(options) {
