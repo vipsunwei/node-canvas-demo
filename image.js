@@ -14,23 +14,25 @@ const {
  * @returns {string} 图片base64串
  */
 async function imageHandler(options) {
+  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  let data = undefined;
   try {
-    let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
     const st = new Date() - 0;
-    const { data } = await getDataForImage(options);
+    const res = await getDataForImage(options);
     const diff = +new Date() - st;
     info(options, options.type === "raw" ? "原始数据" : "质控数据", `用时：${diff / 1000}秒`);
+    data = res.data;
     // console.log("返回的数据 -- ", data);
-    const fdata = !data ? result : formatSondeDataset(data);
-    // const imgBase64 = formatData(data);
-    // console.log(imgBase64[3].length, imgBase64[4].length);
-    // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);
-    const imgBase64 = generateImageBase64(fdata);
-    return imgBase64;
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
+  const fdata = !data ? result : formatSondeDataset(data);
+  // const imgBase64 = formatData(data);
+  // console.log(imgBase64[3].length, imgBase64[4].length);
+  // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);
+  const imgBase64 = generateImageBase64(fdata);
+  return imgBase64;
 }
 
 /**
