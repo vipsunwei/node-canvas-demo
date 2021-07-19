@@ -543,9 +543,9 @@ function fillFuseData(data, startTime) {
       let timeStamp = parseInt(+new Date(data[0].timeStamp) / 1000);
       let len = timeStamp - startTime;
       if (len > 1) {
-        for (let i = 0; i < len - 1; i++) {
+        for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
-          xArr.push(formatDate(new Date(startTime * 1000 + i * 1000), "HH:mm:ss"));
+          xArr.push(formatDate(new Date(startTime * 1000 + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(data[0].aboveSeaLevel));
@@ -553,9 +553,9 @@ function fillFuseData(data, startTime) {
     } else {
       const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
       if (len > 1) {
-        for (let i = 0; i < len - 1; i++) {
+        for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
-          xArr.push(formatDate(new Date(+new Date(el.timeStamp) + i * 1000), "HH:mm:ss"));
+          xArr.push(formatDate(new Date(+new Date(data[i - 1].timeStamp) + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
@@ -1038,8 +1038,8 @@ function fillSondeData(data) {
       const seconds = data[i - 1].seconds;
       const len = el.seconds - seconds;
       if (len > 1) {
-        for (let i = 0; i < len - 1; i++) {
-          xArr.push(formatDate(new Date(seconds * 1000 + i * 1000), "HH:mm:ss"));
+        for (let j = 1; j < len; j++) {
+          xArr.push(formatDate(new Date(seconds * 1000 + j * 1000), "HH:mm:ss"));
           temperatureArr = setTemperatureArr(temperatureArr, el, null);
           humidityArr = setHumidityArr(humidityArr, el, null);
           pressureArr = setPressureArr(pressureArr, el, null);
