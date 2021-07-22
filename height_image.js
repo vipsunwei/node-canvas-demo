@@ -8,10 +8,13 @@ const {
   generateHeightImageBase64,
   formatSondeDataset,
   formatFuseData,
+  formatSondeRawDataset,
 } = require("./utils.js");
 
 async function heightImageHandler(options) {
-  // 获取质控后的数据
+  // 原始数据返回结构
+  let rawResult = [[], [], [], [], []];
+  // 质控数据返回结构
   let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   let sondeData = undefined;
   let startTime = "";
@@ -26,7 +29,11 @@ async function heightImageHandler(options) {
     console.trace(error);
   }
   startTime = (sondeData && sondeData[0]?.seconds) || startTime;
-  sondeData = !sondeData ? result : formatSondeDataset(sondeData);
+  if (options.type === "raw") {
+    sondeData = !sondeData ? rawResult : formatSondeRawDataset(sondeData);
+  } else {
+    sondeData = !sondeData ? result : formatSondeDataset(sondeData);
+  }
 
   // 获取熔断器数据所需参数
   let optionForFuse = {};
@@ -58,7 +65,7 @@ async function heightImageHandler(options) {
   // console.log("返回的数据 -- ", fuseData);
   let imgBase64 = "";
   try {
-    imgBase64 = generateHeightImageBase64(sondeData, fuseData);
+    imgBase64 = generateHeightImageBase64(sondeData, fuseData, options);
   } catch (error) {
     err(error.message);
     console.trace(error);

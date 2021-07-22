@@ -683,8 +683,10 @@ function getFuseId(sondeCode) {
  * 生成高程图base64数据
  * @param {array} sondeData 探空仪数据
  * @param {array} fuseData 熔断器数据
+ * @param {object} options 接口收到的参数
  */
-function generateHeightImageBase64(sondeData, fuseData) {
+function generateHeightImageBase64(sondeData, fuseData, options) {
+  const type = options.type;
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -793,7 +795,12 @@ function generateHeightImageBase64(sondeData, fuseData) {
       },
     ],
   };
-  let sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
+  let sondeAboveSeaLevelArr = [];
+  if (type === "raw") {
+    sondeAboveSeaLevelArr = sondeData[4];
+  } else {
+    sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
+  }
   let xSondeAboveSeaLevelArr = sondeData[0];
   heightOption.series[0].data = sondeAboveSeaLevelArr;
   heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
