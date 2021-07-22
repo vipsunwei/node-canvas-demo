@@ -29,6 +29,19 @@ function success(msg = "") {
 }
 
 /**
+ * 保留n位小数
+ * @param {number|string} v 源数据
+ * @param {number} n 保留小数点后 n 位，默认保留2位小数
+ * @returns {string}
+ */
+function toFixedFilter(v, n = 2) {
+  const arr = [0, "0"];
+  if (arr.includes(v)) return v;
+  if (!v) return "";
+  return typeof v === "number" ? +v.toFixed(n) : +(+v).toFixed(n);
+}
+
+/**
  * 30倍抽析，并且只保留每条数据的经纬度和最后一条数据的海拔信息
  * @param {array} fdata
  */
@@ -536,6 +549,7 @@ function formatFuseData(fuseData, startTime) {
 function fillFuseData(data, startTime) {
   const xArr = [];
   const aboveSeaLevelArr = [];
+  const raisingSpeedArr = [];
   data.forEach((el, i) => {
     const timeStamp = parseInt(+new Date(el.timeStamp) / 1000);
     if (timeStamp < startTime) return;
@@ -545,25 +559,29 @@ function fillFuseData(data, startTime) {
       if (len > 1) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
+          raisingSpeedArr.push(null);
           xArr.push(formatDate(new Date(startTime * 1000 + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(data[0].aboveSeaLevel));
+      raisingSpeedArr.push(toFixedFilter(data[0].raisingSpeed, 1));
       xArr.push(formatDate(new Date(data[0].timeStamp), "HH:mm:ss"));
     } else {
       const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
       if (len > 1) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
+          raisingSpeedArr.push(null);
           xArr.push(formatDate(new Date(+new Date(data[i - 1].timeStamp) + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      raisingSpeedArr.push(toFixedFilter(el.raisingSpeed, 1));
       xArr.push(formatDate(new Date(el.timeStamp), "HH:mm:ss"));
     }
   });
 
-  return [xArr, aboveSeaLevelArr];
+  return [xArr, aboveSeaLevelArr, raisingSpeedArr];
 }
 
 /**
@@ -963,6 +981,32 @@ function formatAboveSeaLevel(aboveSeaLevel) {
 }
 
 /**
+ * 格式化探空仪原始数据用于画廓线图
+ * @param {array} sondeRawData 待格式化的探空仪数据数组
+ * @returns {array}
+ */
+function formatSondeRawDataset(sondeRawData = []) {
+  console.log("探空仪原始数据 = " + sondeRawData.length);
+  // 去重
+  // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
+  sondeRawData = uniqueFun(sondeRawData, "seconds");
+  // 把segmemt为空的，取前一条数据中的segmemt补到空的位置上
+  // sondeRawData = fillSegmemt(sondeRawData);
+  const uCount = sondeRawData.length;
+  console.log("探空仪数据去重后余 = " + uCount);
+  // sondeRawData = removeSegmemt(sondeRawData);
+  // const nonSegmemtCount = uCount - sondeRawData.length;
+  // console.log("没有标记位的有 = " + nonSegmemtCount);
+  // 补空并重组返回结构
+  sondeRawData = fillSondeRawData(sondeRawData);
+  // 保留用到的属性，可减小接口返回数据size
+  // sondeRawData = sondeRawData.map((item) =>
+  //   filterFields(item, ["segmemt", "aboveSeaLevel", "temperature", "pressure", "humidity", "seconds"])
+  // );
+  return sondeRawData;
+}
+
+/**
  * 格式化探空仪数据用于画廓线图
  * @param {array} sondeData 待格式化的探空仪数据数组
  * @returns {array}
@@ -1009,6 +1053,66 @@ function fillSegmemt(data) {
  */
 function removeSegmemt(data) {
   return data.filter((item) => item.segmemt);
+}
+
+/**
+ * 补空并重组返回结构
+ * @param {array} data
+ * @returns {array}
+ * [
+ *    [time, ...],
+ *    [[UP:temperature, ...], [HOR:temperature, ...], [DOWN:temperature, ...]],
+ *    [[UP:humidity, ...], [HOR:humidity, ...], [DOWN:humidity, ...]],
+ *    [[UP:pressure, ...], [HOR:pressure, ...], [DOWN:pressure, ...]],
+ *    [[UP:aboveSeaLevel, ...], [HOR:aboveSeaLevel, ...], [DOWN:aboveSeaLevel, ...]]
+ * ]
+ */
+function fillSondeRawData(data) {
+  let xArr = [],
+    temperatureArr = [],
+    humidityArr = [],
+    pressureArr = [],
+    aboveSeaLevelArr = [];
+  data.forEach((el, i) => {
+    if (i === 0) {
+      xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
+      temperatureArr.push(formatTemperature(el.temperature));
+      humidityArr.push(formatHumidity(el.humidity));
+      pressureArr.push(formatPressure(el.pressure));
+      aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      // temperatureArr = setTemperatureArr(temperatureArr, el);
+      // humidityArr = setHumidityArr(humidityArr, el);
+      // pressureArr = setPressureArr(pressureArr, el);
+      // aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+    } else {
+      const seconds = data[i - 1].seconds;
+      const len = el.seconds - seconds;
+      if (len > 1) {
+        for (let j = 1; j < len; j++) {
+          xArr.push(formatDate(new Date(seconds * 1000 + j * 1000), "HH:mm:ss"));
+          temperatureArr.push(null);
+          humidityArr.push(null);
+          pressureArr.push(null);
+          aboveSeaLevelArr.push(null);
+          // temperatureArr = setTemperatureArr(temperatureArr, el, null);
+          // humidityArr = setHumidityArr(humidityArr, el, null);
+          // pressureArr = setPressureArr(pressureArr, el, null);
+          // aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el, null);
+        }
+      }
+      xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
+      temperatureArr.push(formatTemperature(el.temperature));
+      humidityArr.push(formatHumidity(el.humidity));
+      pressureArr.push(formatPressure(el.pressure));
+      aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      // temperatureArr = setTemperatureArr(temperatureArr, el);
+      // humidityArr = setHumidityArr(humidityArr, el);
+      // pressureArr = setPressureArr(pressureArr, el);
+      // aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+    }
+  });
+
+  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr];
 }
 /**
  * 补空并重组返回结构
@@ -1126,7 +1230,10 @@ module.exports = {
   formatHumidity,
   formatPressure,
   formatAboveSeaLevel,
+  formatSondeRawDataset,
   formatSondeDataset,
+  fillSondeRawData,
   fillSondeData,
   formatFuseData,
+  toFixedFilter,
 };

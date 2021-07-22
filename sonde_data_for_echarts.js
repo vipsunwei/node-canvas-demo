@@ -4,6 +4,7 @@ const {
   http: getSondeDataset,
   getOptionForFuse,
   getSoundingMsg,
+  formatSondeRawDataset,
   formatSondeDataset,
   formatFuseData,
 } = require("./utils");
@@ -31,7 +32,7 @@ async function getSondeRaw(station, tkyid) {
   // }
   const url = `${baseUrl}/api/dataset/view.json`;
   let sondeRawData = undefined;
-  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  let result = [[], [], [], [], []];
   try {
     const { data } = await getSondeDataset(url, { station, tkyid }, "raw");
     sondeRawData = data;
@@ -40,7 +41,7 @@ async function getSondeRaw(station, tkyid) {
     console.trace(error);
     console.log("getSondeRaw报错：url=" + url, "站号=" + station, "探空仪ID=" + tkyid);
   }
-  return !sondeRawData ? result : formatSondeDataset(sondeRawData);
+  return !sondeRawData ? result : formatSondeRawDataset(sondeRawData);
 }
 
 /**
