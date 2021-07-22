@@ -284,9 +284,10 @@ function http(url, obj, type) {
 /**
  * 把echarts出的图表转成base64字符串
  * @param {array} lineArr echarts画图需要的data数据数组
+ * @param {object} options 接口收到的参数
  * @returns 图片的base64字符串
  */
-function generateImageBase64(lineArr) {
+function generateImageBase64(lineArr, options) {
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -486,10 +487,17 @@ function generateImageBase64(lineArr) {
       },
     ],
   };
-  defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
-  defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
-  defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
-  defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
+  if (options.type === "raw") {
+    defaultOptions.series[0].data = lineArr[1];
+    defaultOptions.series[1].data = lineArr[2];
+    defaultOptions.series[2].data = lineArr[3];
+    defaultOptions.series[3].data = lineArr[4];
+  } else {
+    defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
+    defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
+    defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
+    defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
+  }
   defaultOptions.xAxis[0].data = lineArr[0];
   defaultOptions.xAxis[1].data = lineArr[0];
   defaultOptions.xAxis[2].data = lineArr[0];
@@ -547,9 +555,14 @@ function formatFuseData(fuseData, startTime) {
  * @returns {array} [[时间, ...], [海拔, ...]]
  */
 function fillFuseData(data, startTime) {
+  // x轴时间 ： HH:mm:ss
   const xArr = [];
+  // 海拔
   const aboveSeaLevelArr = [];
+  //
   const raisingSpeedArr = [];
+  // 经纬度： [lng, lat]
+  const lnglat = [];
   data.forEach((el, i) => {
     const timeStamp = parseInt(+new Date(el.timeStamp) / 1000);
     if (timeStamp < startTime) return;
@@ -560,6 +573,7 @@ function fillFuseData(data, startTime) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
           raisingSpeedArr.push(null);
+          // lnglat.push(null);
           xArr.push(formatDate(new Date(startTime * 1000 + j * 1000), "HH:mm:ss"));
         }
       }

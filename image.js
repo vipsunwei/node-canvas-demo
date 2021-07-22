@@ -6,6 +6,7 @@ const {
   formatData,
   generateImageBase64,
   formatSondeDataset,
+  formatSondeRawDataset,
 } = require("./utils.js");
 
 /**
@@ -14,6 +15,7 @@ const {
  * @returns {string} 图片base64串
  */
 async function imageHandler(options) {
+  let rawResult = [[], [], [], [], []];
   let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   let data = undefined;
   try {
@@ -27,11 +29,16 @@ async function imageHandler(options) {
     err(error.message);
     console.trace(error);
   }
-  const fdata = !data ? result : formatSondeDataset(data);
+  let fdata = [];
+  if (options.type === "raw") {
+    fdata = !data ? rawResult : formatSondeRawDataset(data);
+  } else {
+    fdata = !data ? result : formatSondeDataset(data);
+  }
   // const imgBase64 = formatData(data);
   // console.log(imgBase64[3].length, imgBase64[4].length);
   // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);
-  const imgBase64 = generateImageBase64(fdata);
+  const imgBase64 = generateImageBase64(fdata, options);
   return imgBase64;
 }
 
