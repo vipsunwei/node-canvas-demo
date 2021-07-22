@@ -559,7 +559,6 @@ function fillFuseData(data, startTime) {
   const xArr = [];
   // 海拔
   const aboveSeaLevelArr = [];
-  //
   const raisingSpeedArr = [];
   // 经纬度： [lng, lat]
   const lnglat = [];
@@ -573,12 +572,13 @@ function fillFuseData(data, startTime) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
           raisingSpeedArr.push(null);
-          // lnglat.push(null);
+          lnglat.push([null, null]);
           xArr.push(formatDate(new Date(startTime * 1000 + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(data[0].aboveSeaLevel));
       raisingSpeedArr.push(toFixedFilter(data[0].raisingSpeed, 1));
+      lnglat.push([toFixedFilter(data[0].longitude, 8), toFixedFilter(data[0].latitude, 8)]);
       xArr.push(formatDate(new Date(data[0].timeStamp), "HH:mm:ss"));
     } else {
       const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
@@ -586,16 +586,43 @@ function fillFuseData(data, startTime) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
           raisingSpeedArr.push(null);
+          lnglat.push([null, null]);
           xArr.push(formatDate(new Date(+new Date(data[i - 1].timeStamp) + j * 1000), "HH:mm:ss"));
         }
       }
       aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
       raisingSpeedArr.push(toFixedFilter(el.raisingSpeed, 1));
+      lnglat.push([toFixedFilter(el.longitude, 8), toFixedFilter(el.latitude, 8)]);
       xArr.push(formatDate(new Date(el.timeStamp), "HH:mm:ss"));
     }
   });
+  const lnglatArr = chouxi(lnglat);
+  return [xArr, aboveSeaLevelArr, raisingSpeedArr, lnglatArr];
+}
 
-  return [xArr, aboveSeaLevelArr, raisingSpeedArr];
+function chouxi(lnglat) {
+  if (!lnglat || !Array.isArray(lnglat)) return [];
+  // 倒着遍历，删除尾部无效数组元素，保证最后一个元素中的经纬度是可用的数据
+  console.log("删除尾部无效经纬度之前的长度 = ", lnglat.length);
+  for (let len = lnglat.length, i = len - 1; i >= 0; i--) {
+    const el = lnglat[i];
+    if (el[0] && el[1]) {
+      break;
+    }
+    lnglat.splice(i, 1);
+  }
+  console.log("删除尾部无效经纬度之后的长度 = ", lnglat.length);
+  // 对经纬度做30倍抽析
+  const lnglatArr = [];
+  const last = lnglat.pop();
+  lnglat.forEach((v, i) => {
+    if (i % 30 === 0) {
+      lnglatArr.push(v);
+    }
+  });
+  lnglatArr.push(last);
+  console.log("30倍抽析后的长度 = ", lnglatArr.length);
+  return lnglatArr;
 }
 
 /**

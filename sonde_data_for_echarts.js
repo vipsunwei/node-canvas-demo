@@ -71,7 +71,7 @@ async function getSonde(station, tkyid) {
  */
 async function getFuse(station, tkyid) {
   let fuseData = undefined;
-  let result = [[], []];
+  let result = [[], [], [], []];
   let option = {};
   try {
     option = await getOptionForFuse({ station, tkyid });
