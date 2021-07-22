@@ -619,7 +619,8 @@ function getSoundingMsg(options) {
     sondeCode: options.sondeCode,
     startTime: options.startTime,
     endTime: options.endTime,
-    pixel: "0",
+    // pixel: "0",
+    step: "0",
   };
   return axios
     .get(url, { params })
