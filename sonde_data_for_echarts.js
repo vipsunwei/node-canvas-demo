@@ -32,7 +32,8 @@ async function getSondeRaw(station, tkyid) {
   // }
   const url = `${baseUrl}/api/dataset/view.json`;
   let sondeRawData = undefined;
-  let result = [[], [], [], [], []];
+  // 下标 0：x轴时间，1：温度，2：湿度，3：气压，4：海拔，5：经纬度
+  let result = [[], [], [], [], [], []];
   try {
     const { data } = await getSondeDataset(url, { station, tkyid }, "raw");
     sondeRawData = data;
@@ -52,7 +53,8 @@ async function getSondeRaw(station, tkyid) {
 async function getSonde(station, tkyid) {
   const url = `${baseUrl}/api/dataset/view.json`;
   let sondeData = undefined;
-  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  // 下标 0：x轴时间，1：温度，2：湿度，3：气压，4：海拔，5：经纬度
+  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []], []];
   try {
     const { data } = await getSondeDataset(url, { station, tkyid });
     sondeData = data;

@@ -1121,6 +1121,7 @@ function fillSondeRawData(data) {
     humidityArr = [],
     pressureArr = [],
     aboveSeaLevelArr = [];
+  let lnglatArr = [];
   data.forEach((el, i) => {
     if (i === 0) {
       xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
@@ -1128,6 +1129,7 @@ function fillSondeRawData(data) {
       humidityArr.push(formatHumidity(el.humidity));
       pressureArr.push(formatPressure(el.pressure));
       aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      lnglatArr.push([toFixedFilter(el.longitude, 8), toFixedFilter(el.latitude, 8)]);
       // temperatureArr = setTemperatureArr(temperatureArr, el);
       // humidityArr = setHumidityArr(humidityArr, el);
       // pressureArr = setPressureArr(pressureArr, el);
@@ -1142,6 +1144,7 @@ function fillSondeRawData(data) {
           humidityArr.push(null);
           pressureArr.push(null);
           aboveSeaLevelArr.push(null);
+          lnglatArr.push([null, null]);
           // temperatureArr = setTemperatureArr(temperatureArr, el, null);
           // humidityArr = setHumidityArr(humidityArr, el, null);
           // pressureArr = setPressureArr(pressureArr, el, null);
@@ -1153,6 +1156,7 @@ function fillSondeRawData(data) {
       humidityArr.push(formatHumidity(el.humidity));
       pressureArr.push(formatPressure(el.pressure));
       aboveSeaLevelArr.push(formatAboveSeaLevel(el.aboveSeaLevel));
+      lnglatArr.push([toFixedFilter(el.longitude, 8), toFixedFilter(el.latitude, 8)]);
       // temperatureArr = setTemperatureArr(temperatureArr, el);
       // humidityArr = setHumidityArr(humidityArr, el);
       // pressureArr = setPressureArr(pressureArr, el);
@@ -1160,7 +1164,9 @@ function fillSondeRawData(data) {
     }
   });
 
-  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr];
+  lnglatArr = chouxi(lnglatArr);
+
+  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr, lnglatArr];
 }
 /**
  * 补空并重组返回结构
@@ -1180,6 +1186,7 @@ function fillSondeData(data) {
     humidityArr = [[], [], []],
     pressureArr = [[], [], []],
     aboveSeaLevelArr = [[], [], []];
+  let lnglatArr = [];
   data.forEach((el, i) => {
     if (i === 0) {
       xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
@@ -1187,6 +1194,7 @@ function fillSondeData(data) {
       humidityArr = setHumidityArr(humidityArr, el);
       pressureArr = setPressureArr(pressureArr, el);
       aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+      lnglatArr.push([toFixedFilter(el.longitude, 8), toFixedFilter(el.latitude, 8)]);
     } else {
       const seconds = data[i - 1].seconds;
       const len = el.seconds - seconds;
@@ -1197,6 +1205,7 @@ function fillSondeData(data) {
           humidityArr = setHumidityArr(humidityArr, el, null);
           pressureArr = setPressureArr(pressureArr, el, null);
           aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el, null);
+          lnglatArr.push([null, null]);
         }
       }
       xArr.push(formatDate(new Date(el.seconds * 1000), "HH:mm:ss"));
@@ -1204,10 +1213,13 @@ function fillSondeData(data) {
       humidityArr = setHumidityArr(humidityArr, el);
       pressureArr = setPressureArr(pressureArr, el);
       aboveSeaLevelArr = setAboveSeaLevelArr(aboveSeaLevelArr, el);
+      lnglatArr.push([toFixedFilter(el.longitude, 8), toFixedFilter(el.latitude, 8)]);
     }
   });
 
-  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr];
+  lnglatArr = chouxi(lnglatArr);
+
+  return [xArr, temperatureArr, humidityArr, pressureArr, aboveSeaLevelArr, lnglatArr];
 }
 
 function setTemperatureArr(temperatureArr, el, fill) {
