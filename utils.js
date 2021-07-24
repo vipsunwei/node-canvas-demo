@@ -601,7 +601,7 @@ function fillFuseData(data, startTime) {
 }
 
 function chouxi(lnglat) {
-  if (!lnglat || !Array.isArray(lnglat)) return [];
+  if (!lnglat || !Array.isArray(lnglat) || !lnglat.length) return [];
   // 倒着遍历，删除尾部无效数组元素，保证最后一个元素中的经纬度是可用的数据
   console.log("删除尾部无效经纬度之前的长度 = ", lnglat.length);
   for (let len = lnglat.length, i = len - 1; i >= 0; i--) {
