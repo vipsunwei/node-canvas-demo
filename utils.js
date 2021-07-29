@@ -487,17 +487,17 @@ function generateImageBase64(lineArr, options) {
       },
     ],
   };
-  if (options.type === "raw") {
-    defaultOptions.series[0].data = lineArr[1];
-    defaultOptions.series[1].data = lineArr[2];
-    defaultOptions.series[2].data = lineArr[3];
-    defaultOptions.series[3].data = lineArr[4];
-  } else {
-    defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
-    defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
-    defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
-    defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
-  }
+  // if (options.type === "raw") {
+  defaultOptions.series[0].data = lineArr[1];
+  defaultOptions.series[1].data = lineArr[2];
+  defaultOptions.series[2].data = lineArr[3];
+  defaultOptions.series[3].data = lineArr[4];
+  // } else {
+  //   defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
+  //   defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
+  //   defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
+  //   defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
+  // }
   defaultOptions.xAxis[0].data = lineArr[0];
   defaultOptions.xAxis[1].data = lineArr[0];
   defaultOptions.xAxis[2].data = lineArr[0];

@@ -30,11 +30,11 @@ async function imageHandler(options) {
     console.trace(error);
   }
   let fdata = [];
-  if (options.type === "raw") {
-    fdata = !data ? rawResult : formatSondeRawDataset(data);
-  } else {
-    fdata = !data ? result : formatSondeDataset(data);
-  }
+  // if (options.type === "raw") {
+  fdata = !data ? rawResult : formatSondeRawDataset(data);
+  // } else {
+  //   fdata = !data ? result : formatSondeDataset(data);
+  // }
   // const imgBase64 = formatData(data);
   // console.log(imgBase64[3].length, imgBase64[4].length);
   // console.log(imgBase64[0].length, imgBase64[4][0].length + imgBase64[4][1].length + imgBase64[4][2].length);
