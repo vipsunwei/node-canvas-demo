@@ -1260,6 +1260,218 @@ function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
   return aboveSeaLevelArr;
 }
 
+/**
+ * 格式化设备信息
+ * @param {array} data
+ * @returns {array}
+ */
+function formatEquipmentData(data) {
+  const equipmentData = [[], [], [], []];
+  data.forEach((el, i) => {
+    if (
+      i !== 0 &&
+      data[i].timeStamp &&
+      data[i - 1].timeStamp &&
+      Math.ceil(new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000) > 1
+    ) {
+      for (
+        let j = 0;
+        j <
+        Math.ceil(new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000) - 1;
+        j++
+      ) {
+        equipmentData[0].push(
+          formatDate(new Date(new Date(data[i - 1].timeStamp).getTime() + 1000 * (j + 1)), "yyyy-MM-dd HH:mm:ss")
+        );
+        equipmentData[1].push(null);
+        equipmentData[2].push(null);
+        equipmentData[3].push(null);
+      }
+    }
+    equipmentData[0].push(formatDate(new Date(el.timeStamp), "yyyy-MM-dd HH:mm:ss"));
+    equipmentData[1].push(el.batteryVol);
+    equipmentData[2].push(el.freqz);
+    equipmentData[3].push(el.rssi);
+  });
+
+  return equipmentData;
+}
+
+/**
+ * 生成设备信息图base64
+ * @param {array} deviceInfo
+ * @returns {string}
+ */
+function generateDeviceInfoImageBase64(deviceInfo) {
+  const config = {
+    width: 950, // Image width, type is number.
+    height: 300, // Image height, type is number.
+    option: {}, // Echarts configuration, type is Object.
+    //If the path  is not set, return the Buffer of image.
+    path: "", // Path is filepath of the image which will be created.
+    enableAutoDispose: true, //Enable auto-dispose echarts after the image is created.
+  };
+  const colors = ["#FF4B00", "#4681FF", "#61A0A8"];
+  const option = {
+    backgroundColor: "#fff",
+    title: { text: "设备信息图" },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "cross",
+      },
+    },
+    animation: false,
+    legend: {
+      data: ["电压", "频率", "信号强度"],
+    },
+    xAxis: [
+      {
+        type: "category",
+        minInterval: 100,
+        data: [],
+        position: "bottom",
+        axisLabel: {
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
+      },
+      {
+        type: "category",
+        minInterval: 100,
+        data: [],
+        axisLine: {
+          show: false,
+        },
+        axisLabel: {
+          show: false,
+        },
+        splitArea: {
+          show: false,
+        },
+        axisTick: {
+          show: false,
+        },
+      },
+      {
+        type: "category",
+        minInterval: 100,
+        data: [],
+        axisLine: {
+          show: false,
+        },
+        axisLabel: {
+          show: false,
+        },
+        splitArea: {
+          show: false,
+        },
+        axisTick: {
+          show: false,
+        },
+      },
+    ],
+    grid: {
+      top: "18%",
+      bottom: "14%",
+      left: "18%",
+      right: "18%",
+    },
+    dataZoom: [
+      {
+        id: "dataZoomX",
+        type: "inside",
+        xAxisIndex: [0, 1, 2],
+        filterMode: "30%",
+      },
+    ],
+    yAxis: [
+      {
+        type: "value",
+        name: "电压",
+        axisLine: {
+          lineStyle: {
+            color: colors[0],
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      {
+        type: "value",
+        name: "频率",
+        position: "left",
+        offset: 36,
+        axisLine: {
+          lineStyle: {
+            color: colors[1],
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      {
+        type: "value",
+        name: "信号强度",
+        position: "right",
+        axisLine: {
+          lineStyle: {
+            color: colors[2],
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+    ],
+    series: [
+      {
+        name: "电压",
+        type: "line",
+        sampling: "average",
+        itemStyle: {
+          color: colors[0],
+        },
+        data: [],
+      },
+      {
+        name: "频率",
+        type: "line",
+        sampling: "average",
+        yAxisIndex: 1,
+        itemStyle: {
+          color: colors[1],
+        },
+        data: [],
+      },
+      {
+        name: "信号强度",
+        type: "line",
+        sampling: "average",
+        yAxisIndex: 2,
+        itemStyle: {
+          color: colors[2],
+        },
+        data: [],
+      },
+    ],
+  };
+
+  option.xAxis[0].data = deviceInfo[0];
+  option.xAxis[1].data = deviceInfo[0];
+  option.xAxis[2].data = deviceInfo[0];
+  option.series[0].data = deviceInfo[1];
+  option.series[1].data = deviceInfo[2];
+  option.series[2].data = deviceInfo[3];
+
+  config.option = option;
+  const buffer = echarts(config);
+  const base64 = Buffer.from(buffer, "utf8").toString("base64");
+  return base64;
+}
+
 module.exports = {
   filterFields,
   uniqueFun,
@@ -1284,6 +1496,7 @@ module.exports = {
   generateHeightImageBase64,
   formatData,
   generateImageBase64,
+  generateDeviceInfoImageBase64,
   getFuseId,
   formatDate,
   formatTemperature,
@@ -1296,4 +1509,5 @@ module.exports = {
   fillSondeData,
   formatFuseData,
   toFixedFilter,
+  formatEquipmentData,
 };

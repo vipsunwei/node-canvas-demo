@@ -22,6 +22,10 @@ app.post("/image", image);
 const heightImage = require("./height_image.js");
 app.post("/heightImage", heightImage);
 
+// 设备信息图
+const deviceInfoImage = require("./device_info_image.js");
+app.post("/deviceInfoImage", deviceInfoImage);
+
 // 历史轨迹数据
 const getHistoryLine = require("./get_history_line.js");
 app.post("/api/node/dataset/gethistoryline", getHistoryLine);
