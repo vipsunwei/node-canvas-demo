@@ -6,6 +6,8 @@ const {
   generateDeviceInfoImageBase64,
   getOptionForFuse,
   formatEquipmentData,
+  getSondeData,
+  getThreshold,
 } = require("./utils.js");
 
 /**
@@ -14,34 +16,38 @@ const {
  * @returns {string} 图片base64串
  */
 async function deviceInfoImageHandler(options) {
-  let startTime = "";
-  // 获取熔断器数据所需参数
-  let optionForFuse = {};
+  /**
+   * 1.根据探空仪ID和站号获取开始时间、结束时间、厂家编号，根据厂家编号使用getThreshold生成阀值对象信息
+   * 2.根据探空仪ID、开始时间、结束时间获取数据
+   * 3.
+   */
+  let sondeData = {};
   try {
-    const st = Date.now();
-    optionForFuse = await getOptionForFuse(options);
-    const d = Date.now() - st;
-    info(options, "获取开始与结束时间", `用时：${d / 1000}秒`);
-    // console.log(startTime, optionForFuse.startTime, optionForFuse.endTime);
-    if (!startTime) {
-      startTime = optionForFuse.startTime;
-    }
+    sondeData = await getSondeData(options);
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
+
+  console.log(sondeData);
+  const { startTime, endTime, firm } = sondeData;
   // 获取熔断器数据
   let deviceInfo = undefined;
+  const defaultRes = [[], [], [], [], [], []];
   try {
     const st = Date.now();
-    deviceInfo = await getSoundingMsg(optionForFuse);
+    deviceInfo = await getSoundingMsg({
+      sondeCode: options.tkyid,
+      startTime: parseInt(+new Date(startTime) / 1000),
+      endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
+    });
     const d = Date.now() - st;
-    info(options, "获取熔断器数据", "用时：" + d / 1000 + "秒");
+    info(options, "获取探空仪电压等信息数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
-  deviceInfo = !deviceInfo ? [[], [], [], []] : formatEquipmentData(deviceInfo);
+  deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
   // console.log("返回的数据 -- ", deviceInfo);
   let imgBase64 = "";
   try {

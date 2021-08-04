@@ -129,6 +129,54 @@ function tanslateFirm(firm) {
   return factory;
 }
 /**
+ * 根据站号和探空仪ID获取探空仪信息
+ * @param {object} opt 对象
+ * @param {string|number} opt.station 站号
+ * @param {string} opt.tkyid 探空仪ID
+ * @returns {object}
+ */
+function getSondeData(opt) {
+  const { station, tkyid } = opt;
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
+  return post(url, {
+    form: {
+      _query_param: JSON.stringify([
+        { FD: "STATION_NUMBER", OP: "=", WD: station },
+        { FD: "TKYID", OP: "=", WD: tkyid },
+      ]),
+    },
+  }).then((res) => {
+    const fieldMap = {
+      TKYID: "tkyid",
+      FLY_START_TIME: "startTime",
+      FINISHED_TIME: "endTime",
+      STATION_NAME: "stationName",
+      STATION_NUMBER: "stationNum",
+      TKY_FIRM: "firm",
+    };
+    let sondeData = {};
+    try {
+      const result = JSON.parse(res.body);
+      if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
+        err(JSON.stringify({ message: "获取探空仪数据失败", body: res.body }));
+      } else {
+        const _DATA_ = result._DATA_;
+        if (_DATA_.length) {
+          const sonde = _DATA_[0];
+          Object.keys(fieldMap).forEach((key) => {
+            sondeData[fieldMap[key]] = sonde[key];
+          });
+        }
+      }
+    } catch (error) {
+      err(error.message);
+      console.trace(error);
+      console.log("getLastSondeDataByStation报错：url=" + url, "站号=" + station);
+    }
+    return sondeData;
+  });
+}
+/**
  * 根据站号获取探空仪最后一条数据
  * @param {string} station 站号
  */
@@ -626,7 +674,56 @@ function chouxi(lnglat) {
 }
 
 /**
+ * 判断阈值
+ * @param {string} firm 厂家编号
+ * @returns {object} {max: 0, normal: 0, min: 0}
+ */
+function getThreshold(firm) {
+  let val = {
+    max: 0,
+    normal: 0,
+    min: 0,
+  };
+  switch (firm) {
+    case "10":
+      val.normal = 3.95;
+      val.max = Number((3.95 + 1.55).toFixed(2));
+      val.min = Number((3.95 - 1.55).toFixed(2));
+      break;
+    case "11":
+      val.normal = 3.95;
+      val.max = Number((3.95 + 1.55).toFixed(2));
+      val.min = Number((3.95 - 1.55).toFixed(2));
+      break;
+    case "20":
+      val.normal = 4.2;
+      val.max = Number((4.2 + 2).toFixed(2));
+      val.min = Number((4.2 - 2).toFixed(2));
+      break;
+    case "30":
+      val.normal = 7.5;
+      val.max = Number((7.5 + 1.5).toFixed(2));
+      val.min = Number((7.5 - 1.5).toFixed(2));
+      break;
+    case "40":
+      val.normal = 6;
+      val.max = Number((6 + 2).toFixed(2));
+      val.min = Number((6 - 2).toFixed(2));
+      break;
+    case "50":
+      val.normal = 5;
+      val.max = Number((5 + 0.2).toFixed(2));
+      val.min = Number((5 - 0.2).toFixed(2));
+      break;
+    default:
+      break;
+  }
+  return val;
+}
+
+/**
  * 根据探空仪ID和站号获取开始时间和结束时间
+ * 20210804增加返回threshold阀值
  * @param {object} options
  * @param {string} options.station
  * @param {string} options.tkyid
@@ -642,7 +739,7 @@ function getSondeTime(options) {
       ]),
     },
   }).then((res) => {
-    const sondeTime = { startTime: "", endTime: "" };
+    const sondeTime = { startTime: "", endTime: "", threshold: { max: 0, normal: 0, min: 0 } };
     try {
       const result = JSON.parse(res.body);
       if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
@@ -650,8 +747,10 @@ function getSondeTime(options) {
       } else {
         const _DATA_ = result._DATA_;
         if (_DATA_.length) {
-          sondeTime.startTime = dateStrToTimeStamp(_DATA_[0].FLY_START_TIME).toString();
-          sondeTime.endTime = dateStrToTimeStamp(_DATA_[0].FINISHED_TIME).toString();
+          const sondeData = _DATA_[0];
+          sondeTime.startTime = dateStrToTimeStamp(sondeData.FLY_START_TIME).toString();
+          sondeTime.endTime = dateStrToTimeStamp(sondeData.FINISHED_TIME).toString();
+          sondeTime.threshold = getThreshold((sondeData.TKY_FIRM - 0).toString());
         }
       }
     } catch (error) {
@@ -664,12 +763,12 @@ function getSondeTime(options) {
 }
 
 /**
- * 获取熔断器数据
+ * 获取探空仪或熔断器数据
  * @param {object} options
- * @param {string} options.sondeCode
+ * @param {string} options.sondeCode 探空仪ID或熔断器ID
  * @param {string} options.startTime
  * @param {string} options.endTime
- * @param {string} options.pixel
+ * @param {string} options.step
  */
 function getSoundingMsg(options) {
   // const url = "http://192.168.10.39:18082/api/dataset/getSoundingMsg";
@@ -679,7 +778,7 @@ function getSoundingMsg(options) {
     startTime: options.startTime,
     endTime: options.endTime,
     // pixel: "0",
-    step: "0",
+    step: options.step || "0",
   };
   return axios
     .get(url, { params })
@@ -887,7 +986,7 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
  */
 async function getOptionForFuse(options) {
   const { tkyid } = options;
-  const result = { sondeCode: "", startTime: "", endTime: "" };
+  const result = { sondeCode: "", startTime: "", endTime: "", threshold: { max: 0, normal: 0, min: 0 } };
   try {
     const fuseId = await getFuseId(tkyid);
     result.sondeCode = fuseId;
@@ -899,6 +998,7 @@ async function getOptionForFuse(options) {
     const sondeTime = await getSondeTime(options);
     result.startTime = sondeTime.startTime;
     result.endTime = sondeTime.endTime && String(Number(sondeTime.endTime) + 6 * 60 * 60); // 结束时间外扩6小时
+    result.threshold = sondeTime.threshold;
   } catch (error) {
     err(error.message);
     console.trace(error);
@@ -1263,10 +1363,11 @@ function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
 /**
  * 格式化设备信息
  * @param {array} data
+ * @param {object} threshold 阀值
  * @returns {array}
  */
-function formatEquipmentData(data) {
-  const equipmentData = [[], [], [], []];
+function formatEquipmentData(data, threshold) {
+  const equipmentData = [[], [], [], [], [], []];
   data.forEach((el, i) => {
     if (
       i !== 0 &&
@@ -1286,12 +1387,16 @@ function formatEquipmentData(data) {
         equipmentData[1].push(null);
         equipmentData[2].push(null);
         equipmentData[3].push(null);
+        equipmentData[4].push(threshold.max);
+        equipmentData[5].push(threshold.min);
       }
     }
     equipmentData[0].push(formatDate(new Date(el.timeStamp), "yyyy-MM-dd HH:mm:ss"));
     equipmentData[1].push(el.batteryVol);
     equipmentData[2].push(el.freqz);
     equipmentData[3].push(el.rssi);
+    equipmentData[4].push(threshold.max);
+    equipmentData[5].push(threshold.min);
   });
 
   return equipmentData;
@@ -1323,7 +1428,7 @@ function generateDeviceInfoImageBase64(deviceInfo) {
     },
     animation: false,
     legend: {
-      data: ["电压", "频率", "信号强度"],
+      data: ["电压", "频率", "信号强度", "电压上限", "电压下限"],
     },
     xAxis: [
       {
@@ -1389,6 +1494,8 @@ function generateDeviceInfoImageBase64(deviceInfo) {
       {
         type: "value",
         name: "电压",
+        // min: dataMin,
+        // max: dataMax,
         axisLine: {
           lineStyle: {
             color: colors[0],
@@ -1402,6 +1509,8 @@ function generateDeviceInfoImageBase64(deviceInfo) {
         type: "value",
         name: "频率",
         position: "left",
+        max: 406,
+        min: 400,
         offset: 36,
         axisLine: {
           lineStyle: {
@@ -1416,9 +1525,39 @@ function generateDeviceInfoImageBase64(deviceInfo) {
         type: "value",
         name: "信号强度",
         position: "right",
+        // min: dataMin,
+        // max: dataMax,
         axisLine: {
           lineStyle: {
             color: colors[2],
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      {
+        type: "value",
+        name: "电压上限",
+        // min: dataMin,
+        // max: dataMax,
+        axisLine: {
+          lineStyle: {
+            color: "#000",
+          },
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      {
+        type: "value",
+        name: "电压下限",
+        // min: dataMin,
+        // max: dataMax,
+        axisLine: {
+          lineStyle: {
+            color: "#000",
           },
         },
         splitLine: {
@@ -1456,6 +1595,30 @@ function generateDeviceInfoImageBase64(deviceInfo) {
         },
         data: [],
       },
+      {
+        name: "电压上限",
+        type: "line",
+        sampling: "average",
+        itemStyle: {
+          color: colors[0],
+        },
+        lineStyle: {
+          type: "dashed",
+        },
+        data: [],
+      },
+      {
+        name: "电压下限",
+        type: "line",
+        sampling: "average",
+        itemStyle: {
+          color: colors[0],
+        },
+        lineStyle: {
+          type: "dashed",
+        },
+        data: [],
+      },
     ],
   };
 
@@ -1465,6 +1628,8 @@ function generateDeviceInfoImageBase64(deviceInfo) {
   option.series[0].data = deviceInfo[1];
   option.series[1].data = deviceInfo[2];
   option.series[2].data = deviceInfo[3];
+  option.series[3].data = deviceInfo[4];
+  option.series[4].data = deviceInfo[5];
 
   config.option = option;
   const buffer = echarts(config);
@@ -1473,6 +1638,8 @@ function generateDeviceInfoImageBase64(deviceInfo) {
 }
 
 module.exports = {
+  getThreshold,
+  getSondeData,
   filterFields,
   uniqueFun,
   arrayToDistinct,
