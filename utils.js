@@ -1314,7 +1314,7 @@ function generateDeviceInfoImageBase64(deviceInfo) {
   const colors = ["#FF4B00", "#4681FF", "#61A0A8"];
   const option = {
     backgroundColor: "#fff",
-    title: { text: "设备信息图" },
+    // title: { text: "设备信息图" },
     tooltip: {
       trigger: "axis",
       axisPointer: {
