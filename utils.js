@@ -188,7 +188,14 @@ function getLastSondeDataByStation(station) {
       data: JSON.stringify({ _PAGE_: { NOWPAGE: 1, SHOWNUM: 1, ORDER: "FINISHED_TIME desc" } }),
     },
   }).then((res) => {
-    const sondeData = { tkyid: "", startTime: "", endTime: "", stationName: "", stationNum: "", factoryName: "" };
+    const sondeData = {
+      tkyid: "",
+      startTime: "",
+      endTime: "",
+      stationName: "",
+      stationNum: "",
+      factoryName: "",
+    };
     try {
       const result = JSON.parse(res.body);
       if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
@@ -629,7 +636,8 @@ function fillFuseData(data, startTime) {
       lnglat.push([toFixedFilter(data[0].longitude, 8), toFixedFilter(data[0].latitude, 8)]);
       xArr.push(formatDate(new Date(data[0].timeStamp), "HH:mm:ss"));
     } else {
-      const len = parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
+      const len =
+        parseInt(+new Date(el.timeStamp) / 1000) - parseInt(+new Date(data[i - 1].timeStamp) / 1000);
       if (len > 1) {
         for (let j = 1; j < len; j++) {
           aboveSeaLevelArr.push(null);
@@ -784,7 +792,11 @@ function getSoundingMsg(options) {
     .get(url, { params })
     .then((res) => Object.values(res.data.data))
     .catch((error) =>
-      console.log("getSoundingMsg报错：url=" + url, "参数=" + JSON.stringify(params), "errMsg=" + error.message)
+      console.log(
+        "getSoundingMsg报错：url=" + url,
+        "参数=" + JSON.stringify(params),
+        "errMsg=" + error.message
+      )
     );
 }
 
@@ -860,9 +872,13 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
         let str = "";
         for (var i = 0; i < params.length; i++) {
           if (params[i].seriesName === "探空仪") {
-            str += `${params[i].seriesName}：${isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"}<br>`;
+            str += `${params[i].seriesName}：${
+              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
+            }<br>`;
           } else if (params[i].seriesName === "熔断器") {
-            str += `${params[i].seriesName}：${isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"}`;
+            str += `${params[i].seriesName}：${
+              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
+            }`;
           }
         }
         return str;
@@ -1066,7 +1082,10 @@ function formatDate(date = new Date(), format = "yyyy-MM-dd HH:mm:ss") {
   }
   for (const k in o) {
     if (new RegExp("(" + k + ")").test(format)) {
-      format = format.replace(RegExp.$1, RegExp.$1.length === 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length));
+      format = format.replace(
+        RegExp.$1,
+        RegExp.$1.length === 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length)
+      );
     }
   }
   return format;
@@ -1324,16 +1343,23 @@ function fillSondeData(data) {
 
 function setTemperatureArr(temperatureArr, el, fill) {
   el.segmemt === "UP" &&
-    (fill === null ? temperatureArr[0].push(null) : temperatureArr[0].push(formatTemperature(el.temperature)));
+    (fill === null
+      ? temperatureArr[0].push(null)
+      : temperatureArr[0].push(formatTemperature(el.temperature)));
   el.segmemt === "HOR" &&
-    (fill === null ? temperatureArr[1].push(null) : temperatureArr[1].push(formatTemperature(el.temperature)));
+    (fill === null
+      ? temperatureArr[1].push(null)
+      : temperatureArr[1].push(formatTemperature(el.temperature)));
   el.segmemt === "DOWN" &&
-    (fill === null ? temperatureArr[2].push(null) : temperatureArr[2].push(formatTemperature(el.temperature)));
+    (fill === null
+      ? temperatureArr[2].push(null)
+      : temperatureArr[2].push(formatTemperature(el.temperature)));
   return temperatureArr;
 }
 
 function setHumidityArr(humidityArr, el, fill) {
-  el.segmemt === "UP" && (fill === null ? humidityArr[0].push(null) : humidityArr[0].push(formatHumidity(el.humidity)));
+  el.segmemt === "UP" &&
+    (fill === null ? humidityArr[0].push(null) : humidityArr[0].push(formatHumidity(el.humidity)));
   el.segmemt === "HOR" &&
     (fill === null ? humidityArr[1].push(null) : humidityArr[1].push(formatHumidity(el.humidity)));
   el.segmemt === "DOWN" &&
@@ -1342,7 +1368,8 @@ function setHumidityArr(humidityArr, el, fill) {
 }
 
 function setPressureArr(pressureArr, el, fill) {
-  el.segmemt === "UP" && (fill === null ? pressureArr[0].push(null) : pressureArr[0].push(formatPressure(el.pressure)));
+  el.segmemt === "UP" &&
+    (fill === null ? pressureArr[0].push(null) : pressureArr[0].push(formatPressure(el.pressure)));
   el.segmemt === "HOR" &&
     (fill === null ? pressureArr[1].push(null) : pressureArr[1].push(formatPressure(el.pressure)));
   el.segmemt === "DOWN" &&
@@ -1352,11 +1379,17 @@ function setPressureArr(pressureArr, el, fill) {
 
 function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
   el.segmemt === "UP" &&
-    (fill === null ? aboveSeaLevelArr[0].push(null) : aboveSeaLevelArr[0].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+    (fill === null
+      ? aboveSeaLevelArr[0].push(null)
+      : aboveSeaLevelArr[0].push(formatAboveSeaLevel(el.aboveSeaLevel)));
   el.segmemt === "HOR" &&
-    (fill === null ? aboveSeaLevelArr[1].push(null) : aboveSeaLevelArr[1].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+    (fill === null
+      ? aboveSeaLevelArr[1].push(null)
+      : aboveSeaLevelArr[1].push(formatAboveSeaLevel(el.aboveSeaLevel)));
   el.segmemt === "DOWN" &&
-    (fill === null ? aboveSeaLevelArr[2].push(null) : aboveSeaLevelArr[2].push(formatAboveSeaLevel(el.aboveSeaLevel)));
+    (fill === null
+      ? aboveSeaLevelArr[2].push(null)
+      : aboveSeaLevelArr[2].push(formatAboveSeaLevel(el.aboveSeaLevel)));
   return aboveSeaLevelArr;
 }
 
@@ -1373,16 +1406,24 @@ function formatEquipmentData(data, threshold) {
       i !== 0 &&
       data[i].timeStamp &&
       data[i - 1].timeStamp &&
-      Math.ceil(new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000) > 1
+      Math.ceil(
+        new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000
+      ) > 1
     ) {
       for (
         let j = 0;
         j <
-        Math.ceil(new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000) - 1;
+        Math.ceil(
+          new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000
+        ) -
+          1;
         j++
       ) {
         equipmentData[0].push(
-          formatDate(new Date(new Date(data[i - 1].timeStamp).getTime() + 1000 * (j + 1)), "yyyy-MM-dd HH:mm:ss")
+          formatDate(
+            new Date(new Date(data[i - 1].timeStamp).getTime() + 1000 * (j + 1)),
+            "yyyy-MM-dd HH:mm:ss"
+          )
         );
         equipmentData[1].push(null);
         equipmentData[2].push(null);
@@ -1538,7 +1579,7 @@ function generateDeviceInfoImageBase64(deviceInfo) {
       },
       {
         type: "value",
-        name: "电压上限",
+        name: "",
         // min: dataMin,
         // max: dataMax,
         axisLine: {
@@ -1552,7 +1593,7 @@ function generateDeviceInfoImageBase64(deviceInfo) {
       },
       {
         type: "value",
-        name: "电压下限",
+        name: "",
         // min: dataMin,
         // max: dataMax,
         axisLine: {
