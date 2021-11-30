@@ -1404,24 +1404,14 @@ function formatEquipmentData(data, threshold) {
   data.forEach((el, i) => {
     if (
       i !== 0 &&
-      data[i].timeStamp &&
-      data[i - 1].timeStamp &&
-      Math.ceil(
-        new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000
-      ) > 1
+      data[i].seconds &&
+      data[i - 1].seconds &&
+      Math.ceil(data[i].seconds - data[i - 1].seconds) > 1
     ) {
-      for (
-        let j = 0;
-        j <
-        Math.ceil(
-          new Date(data[i].timeStamp).getTime() / 1000 - new Date(data[i - 1].timeStamp).getTime() / 1000
-        ) -
-          1;
-        j++
-      ) {
+      for (let j = 0; j < Math.ceil(data[i].seconds - data[i - 1].seconds) - 1; j++) {
         equipmentData[0].push(
           formatDate(
-            new Date(new Date(data[i - 1].timeStamp).getTime() + 1000 * (j + 1)),
+            new Date(new Date(data[i - 1].seconds * 1000).getTime() + 1000 * (j + 1)),
             "yyyy-MM-dd HH:mm:ss"
           )
         );
@@ -1432,7 +1422,7 @@ function formatEquipmentData(data, threshold) {
         equipmentData[5].push(threshold.min);
       }
     }
-    equipmentData[0].push(formatDate(new Date(el.timeStamp), "yyyy-MM-dd HH:mm:ss"));
+    equipmentData[0].push(formatDate(new Date(el.seconds * 1000), "yyyy-MM-dd HH:mm:ss"));
     equipmentData[1].push(el.batteryVol);
     equipmentData[2].push(el.freqz);
     equipmentData[3].push(el.rssi);

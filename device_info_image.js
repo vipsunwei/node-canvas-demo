@@ -8,6 +8,7 @@ const {
   formatEquipmentData,
   getSondeData,
   getThreshold,
+  getDataForImage,
 } = require("./utils.js");
 
 /**
@@ -36,17 +37,24 @@ async function deviceInfoImageHandler(options) {
   const defaultRes = [[], [], [], [], [], []];
   try {
     const st = Date.now();
-    deviceInfo = await getSoundingMsg({
-      sondeCode: options.tkyid,
-      startTime: parseInt(+new Date(startTime) / 1000),
-      endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
-    });
+    /**
+     * 2021-11-30修改：从view.json接口获取设备信息
+     */
+    // deviceInfo = await getSoundingMsg({
+    //   sondeCode: options.tkyid,
+    //   startTime: parseInt(+new Date(startTime) / 1000),
+    //   endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
+    // });
+    if (!"type" in options || options.type !== "raw") options.type = "raw";
+    const res = await getDataForImage(options);
+    deviceInfo = res.data;
     const d = Date.now() - st;
     info(options, "获取探空仪电压等信息数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
+  // console.log("device info : ", deviceInfo);
   deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
   // console.log("返回的数据 -- ", deviceInfo);
   let imgBase64 = "";
