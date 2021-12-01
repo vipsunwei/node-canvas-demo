@@ -22,7 +22,11 @@ async function heightImageHandler(options) {
     const st = Date.now();
     const res = await getDataForImage(options);
     const d = Date.now() - st;
-    info(options, options.type === "raw" ? "获取探空仪原始数据" : "获取探空仪质控数据", `用时：${d / 1000}秒`);
+    info(
+      options,
+      options.type === "raw" ? "获取探空仪原始数据" : "获取探空仪质控数据",
+      `用时：${d / 1000}秒`
+    );
     sondeData = res.data;
   } catch (error) {
     err(error.message);
@@ -54,7 +58,10 @@ async function heightImageHandler(options) {
   let fuseData = undefined;
   try {
     const st = Date.now();
+    console.log("getSoundingMsg获取熔断数据时入参：");
+    console.log(optionForFuse);
     fuseData = await getSoundingMsg(optionForFuse);
+    console.log("返回的熔断数据 -- ", fuseData);
     const d = Date.now() - st;
     info(options, "获取熔断器数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
@@ -62,7 +69,6 @@ async function heightImageHandler(options) {
     console.trace(error);
   }
   fuseData = !fuseData ? [[], []] : formatFuseData(fuseData, startTime);
-  // console.log("返回的数据 -- ", fuseData);
   let imgBase64 = "";
   try {
     imgBase64 = generateHeightImageBase64(sondeData, fuseData, options);

@@ -255,6 +255,8 @@ function deepObjectMerge(FirstOBJ = {}, SecondOBJ = {}) {
  * @returns {promise} 网络请求返回的promise对象
  */
 function getDataForImage(options) {
+  console.log("/api/dataset/view.json接口入参：");
+  console.log(options);
   const url = `${baseUrl}/api/dataset/view.json`;
   if (!options.type || options.type !== "raw") {
     return http(url, options);
@@ -818,6 +820,8 @@ function getFuseId(sondeCode) {
         err(JSON.stringify({ message: "获取熔断器ID失败", body: res.body }));
       } else {
         const _DATA_ = result._DATA_;
+        console.log("根据探空仪ID：" + sondeCode + " 获取熔断器ID");
+        console.log("返回的熔断器ID是：", _DATA_);
         if (_DATA_.length) {
           fuseId = _DATA_[0]?.FUSECODE;
         }

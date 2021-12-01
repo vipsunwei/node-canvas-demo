@@ -45,16 +45,17 @@ async function deviceInfoImageHandler(options) {
     //   startTime: parseInt(+new Date(startTime) / 1000),
     //   endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
     // });
-    if (!"type" in options || options.type !== "raw") options.type = "raw";
-    const res = await getDataForImage(options);
+    // if (!"type" in options || options.type !== "raw") options.type = "raw";
+    const res = await getDataForImage({ ...options, type: "raw" });
     deviceInfo = res.data;
     const d = Date.now() - st;
+    console.log("device info 第1条数据: ");
+    console.log(deviceInfo?.[0]);
     info(options, "获取探空仪电压等信息数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
-  // console.log("device info : ", deviceInfo);
   deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
   // console.log("返回的数据 -- ", deviceInfo);
   let imgBase64 = "";
