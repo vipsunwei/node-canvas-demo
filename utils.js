@@ -1405,6 +1405,37 @@ function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
  */
 function formatEquipmentData(data, threshold) {
   const equipmentData = [[], [], [], [], [], []];
+  // 时序库接口走这里逻辑
+  data.forEach((el, i) => {
+    if (
+      i !== 0 &&
+      data[i].timeStamp &&
+      data[i - 1].timeStamp &&
+      Math.ceil(data[i].timeStamp / 1000 - data[i - 1].timeStamp / 1000) > 1
+    ) {
+      for (let j = 0; j < Math.ceil(data[i].timeStamp / 1000 - data[i - 1].timeStamp / 1000) - 1; j++) {
+        equipmentData[0].push(
+          formatDate(
+            new Date(new Date(data[i - 1].timeStamp).getTime() + 1000 * (j + 1)),
+            "yyyy-MM-dd HH:mm:ss"
+          )
+        );
+        equipmentData[1].push(null);
+        equipmentData[2].push(null);
+        equipmentData[3].push(null);
+        equipmentData[4].push(threshold.max);
+        equipmentData[5].push(threshold.min);
+      }
+    }
+    equipmentData[0].push(formatDate(new Date(el.timeStamp), "yyyy-MM-dd HH:mm:ss"));
+    equipmentData[1].push(el.batteryVol);
+    equipmentData[2].push(el.freqz);
+    equipmentData[3].push(el.rssi);
+    equipmentData[4].push(threshold.max);
+    equipmentData[5].push(threshold.min);
+  });
+  // view.json接口走这里逻辑
+  /**
   data.forEach((el, i) => {
     if (
       i !== 0 &&
@@ -1433,6 +1464,7 @@ function formatEquipmentData(data, threshold) {
     equipmentData[4].push(threshold.max);
     equipmentData[5].push(threshold.min);
   });
+  /**/
 
   return equipmentData;
 }
