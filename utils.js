@@ -46,15 +46,18 @@ function toFixedFilter(v, n = 2) {
  * @param {array} fdata
  */
 function formatStationDataSet(fdata) {
-  const last = fdata.pop();
-  const lastTimeHeight = Number(last.aboveSeaLevel);
-  const lnglat = [];
-  fdata.forEach((value, i) => {
-    if (i % 30 == 0) {
-      lnglat.push([Number(value.longitude), Number(value.latitude)]);
-    }
-  });
-  lnglat.push([Number(last.longitude), Number(last.latitude)]);
+  let lnglat = [];
+  let lastTimeHeight = "";
+  if (fdata && fdata?.length) {
+    const last = fdata.pop();
+    lastTimeHeight = Number(last.aboveSeaLevel);
+    fdata.forEach((value, i) => {
+      if (i % 30 == 0) {
+        lnglat.push([Number(value.longitude), Number(value.latitude)]);
+      }
+    });
+    lnglat.push([Number(last.longitude), Number(last.latitude)]);
+  }
   return [lnglat, lastTimeHeight];
 }
 

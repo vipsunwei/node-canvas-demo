@@ -17,7 +17,9 @@ async function getHistoryLineHandler(stationArr) {
   const sondeData = formatSondeDataByStation(sondeDataArr, stationArr);
   const options = [];
   Object.values(sondeData).forEach((sonde) => {
-    options.push({ station: sonde.stationNum, tkyid: sonde.tkyid });
+    if (sonde.stationNum && sonde.tkyid) {
+      options.push({ station: sonde.stationNum, tkyid: sonde.tkyid });
+    }
   });
   let res = {};
   try {
@@ -39,7 +41,9 @@ function getHistoryLine(req, res) {
 
   const stations = options.stations;
   if (!stations || typeof stations !== "string") {
-    res.status(400).send('参数必须是站号字符串，多个以英文逗号(,)拼接，例如："12345,34534,65778,33455,35566"');
+    res
+      .status(400)
+      .send('参数必须是站号字符串，多个以英文逗号(,)拼接，例如："12345,34534,65778,33455,35566"');
     warning('参数必须是站号字符串，多个以英文逗号(,)拼接，例如："12345,34534,65778,33455,35566"');
     return;
   }
