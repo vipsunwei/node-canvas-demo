@@ -140,7 +140,7 @@ function tanslateFirm(firm) {
  */
 function getSondeData(opt) {
   const { station, tkyid } = opt;
-  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA_NEW.query.do";
   return post(url, {
     form: {
       _query_param: JSON.stringify([
@@ -258,9 +258,10 @@ function deepObjectMerge(FirstOBJ = {}, SecondOBJ = {}) {
  * @returns {promise} 网络请求返回的promise对象
  */
 function getDataForImage(options) {
-  console.log("/api/dataset/view.json接口入参：");
+  console.log("/api/report/tkdatasetview接口入参：");
   console.log(options);
-  const url = `${baseUrl}/api/dataset/view.json`;
+  // const url = `${baseUrl}/api/dataset/view.json`;
+  const url = `${baseUrl}/api/report/tkdatasetview`;
   if (!options.type || options.type !== "raw") {
     return http(url, options);
   } else {
@@ -334,9 +335,9 @@ function formatData(data) {
  * @returns
  */
 function http(url, obj, type) {
-  const params = { station: obj.station, tkyid: obj.tkyid };
+  const params = { station: obj.station, tkyId: obj.tkyid };
   if (type === "raw") {
-    params.type = "raw";
+    params.format = "raw";
   }
   return axios.get(url, { params });
 }
