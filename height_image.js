@@ -17,7 +17,7 @@ async function heightImageHandler(options) {
   // 质控数据返回结构
   let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   let sondeData = undefined;
-  let startTime = "";
+  // let startTime = "";
   try {
     const st = Date.now();
     const res = await getDataForImage(options);
@@ -32,13 +32,15 @@ async function heightImageHandler(options) {
     err(error.message);
     console.trace(error);
   }
-  startTime = (sondeData && sondeData[0]?.seconds) || startTime;
+  // 2022/04/14修改：不需要获取熔断器数据了，所需参数也就不需要了
+  // startTime = (sondeData && sondeData[0]?.seconds) || startTime;
   if (options.type === "raw") {
     sondeData = !sondeData ? rawResult : formatSondeRawDataset(sondeData);
   } else {
     sondeData = !sondeData ? result : formatSondeDataset(sondeData);
   }
 
+  /** 2022/04/14修改：不需要获取熔断器数据了，所需参数也就不需要了 **
   // 获取熔断器数据所需参数
   let optionForFuse = {};
   try {
@@ -69,9 +71,10 @@ async function heightImageHandler(options) {
     console.trace(error);
   }
   fuseData = !fuseData ? [[], []] : formatFuseData(fuseData, startTime);
+  /* */
   let imgBase64 = "";
   try {
-    imgBase64 = generateHeightImageBase64(sondeData, fuseData, options);
+    imgBase64 = generateHeightImageBase64(sondeData, options);
   } catch (error) {
     err(error.message);
     console.trace(error);

@@ -11,6 +11,12 @@ const orange = chalk.keyword("orange");
 const green = chalk.bold.green;
 const yellow = chalk.bold.yellow;
 const blueBright = chalk.bold.blueBright;
+// 分段常量定义
+const SEGMEMT = {
+  UP: "0",
+  HOR: "1",
+  DOWN: "2",
+};
 
 function info(options, typeText, msg = "") {
   const stationText = `${yellow(options.station)}`;
@@ -685,7 +691,7 @@ function chouxi(lnglat) {
     }
   });
   lnglatArr.push(last);
-  console.log("30倍抽析后的长度 = ", lnglatArr.length);
+  console.log("30倍抽析后经纬度数组的长度 = ", lnglatArr.length);
   return lnglatArr;
 }
 
@@ -843,11 +849,11 @@ function getFuseId(sondeCode) {
 
 /**
  * 生成高程图base64数据
+ * @description 2022/04/14修改：去掉参数熔断器数据数组
  * @param {array} sondeData 探空仪数据
- * @param {array} fuseData 熔断器数据
  * @param {object} options 接口收到的参数
  */
-function generateHeightImageBase64(sondeData, fuseData, options) {
+function generateHeightImageBase64(sondeData, options) {
   const type = options.type;
   const config = {
     width: 950, // Image width, type is number.
@@ -885,10 +891,6 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
             str += `${params[i].seriesName}：${
               isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
             }<br>`;
-          } else if (params[i].seriesName === "熔断器") {
-            str += `${params[i].seriesName}：${
-              isNaN(params[i].data) ? "暂无" : params[i].data.toFixed(1) + "m"
-            }`;
           }
         }
         return str;
@@ -896,7 +898,7 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
     },
     animation: false,
     legend: {
-      data: ["探空仪", "熔断器"],
+      data: ["探空仪"],
     },
     xAxis: [
       {
@@ -950,15 +952,15 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
         },
         data: [],
       },
-      {
-        name: "熔断器",
-        type: "line",
-        sampling: "average",
-        itemStyle: {
-          color: colors[0],
-        },
-        data: [],
-      },
+      // {
+      //   name: "熔断器",
+      //   type: "line",
+      //   sampling: "average",
+      //   itemStyle: {
+      //     color: colors[0],
+      //   },
+      //   data: [],
+      // },
     ],
   };
   let sondeAboveSeaLevelArr = [];
@@ -971,17 +973,18 @@ function generateHeightImageBase64(sondeData, fuseData, options) {
   heightOption.series[0].data = sondeAboveSeaLevelArr;
   heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
 
-  let xFuseAboveSeaLevelArr = fuseData[0];
-  let fuseAboveSeaLevelArr = fuseData[1];
-  heightOption.series[1].data = fuseAboveSeaLevelArr;
-
-  if (xSondeAboveSeaLevelArr.length < xFuseAboveSeaLevelArr.length) {
-    let len = xFuseAboveSeaLevelArr.length - xSondeAboveSeaLevelArr.length;
-    for (let i = 0; i < len; i++) {
-      heightOption.series[0].data.push(NaN);
-    }
-    heightOption.xAxis[0].data = xFuseAboveSeaLevelArr;
-  }
+  // 不画熔断器数据折线
+  // let xFuseAboveSeaLevelArr = fuseData[0];
+  // let fuseAboveSeaLevelArr = fuseData[1];
+  // heightOption.series[1].data = fuseAboveSeaLevelArr;
+  // 没有熔断器数据不需要对比探空仪数组和熔断器数组的长度进行补齐了
+  // if (xSondeAboveSeaLevelArr.length < xFuseAboveSeaLevelArr.length) {
+  //   let len = xFuseAboveSeaLevelArr.length - xSondeAboveSeaLevelArr.length;
+  //   for (let i = 0; i < len; i++) {
+  //     heightOption.series[0].data.push(NaN);
+  //   }
+  //   heightOption.xAxis[0].data = xFuseAboveSeaLevelArr;
+  // }
 
   // let sondeAboveSeaLevelArr = sondeData[3];
   // let xSondeAboveSeaLevelArr = sondeData[4];
@@ -1355,15 +1358,15 @@ function fillSondeData(data) {
 }
 
 function setTemperatureArr(temperatureArr, el, fill) {
-  el.segmemt === "UP" &&
+  el.segmemt === SEGMEMT.UP &&
     (fill === null
       ? temperatureArr[0].push(null)
       : temperatureArr[0].push(formatTemperature(el.temperature)));
-  el.segmemt === "HOR" &&
+  el.segmemt === SEGMEMT.HOR &&
     (fill === null
       ? temperatureArr[1].push(null)
       : temperatureArr[1].push(formatTemperature(el.temperature)));
-  el.segmemt === "DOWN" &&
+  el.segmemt === SEGMEMT.DOWN &&
     (fill === null
       ? temperatureArr[2].push(null)
       : temperatureArr[2].push(formatTemperature(el.temperature)));
@@ -1371,35 +1374,35 @@ function setTemperatureArr(temperatureArr, el, fill) {
 }
 
 function setHumidityArr(humidityArr, el, fill) {
-  el.segmemt === "UP" &&
+  el.segmemt === SEGMEMT.UP &&
     (fill === null ? humidityArr[0].push(null) : humidityArr[0].push(formatHumidity(el.humidity)));
-  el.segmemt === "HOR" &&
+  el.segmemt === SEGMEMT.HOR &&
     (fill === null ? humidityArr[1].push(null) : humidityArr[1].push(formatHumidity(el.humidity)));
-  el.segmemt === "DOWN" &&
+  el.segmemt === SEGMEMT.DOWN &&
     (fill === null ? humidityArr[2].push(null) : humidityArr[2].push(formatHumidity(el.humidity)));
   return humidityArr;
 }
 
 function setPressureArr(pressureArr, el, fill) {
-  el.segmemt === "UP" &&
+  el.segmemt === SEGMEMT.UP &&
     (fill === null ? pressureArr[0].push(null) : pressureArr[0].push(formatPressure(el.pressure)));
-  el.segmemt === "HOR" &&
+  el.segmemt === SEGMEMT.HOR &&
     (fill === null ? pressureArr[1].push(null) : pressureArr[1].push(formatPressure(el.pressure)));
-  el.segmemt === "DOWN" &&
+  el.segmemt === SEGMEMT.DOWN &&
     (fill === null ? pressureArr[2].push(null) : pressureArr[2].push(formatPressure(el.pressure)));
   return pressureArr;
 }
 
 function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
-  el.segmemt === "UP" &&
+  el.segmemt === SEGMEMT.UP &&
     (fill === null
       ? aboveSeaLevelArr[0].push(null)
       : aboveSeaLevelArr[0].push(formatAboveSeaLevel(el.aboveSeaLevel)));
-  el.segmemt === "HOR" &&
+  el.segmemt === SEGMEMT.HOR &&
     (fill === null
       ? aboveSeaLevelArr[1].push(null)
       : aboveSeaLevelArr[1].push(formatAboveSeaLevel(el.aboveSeaLevel)));
-  el.segmemt === "DOWN" &&
+  el.segmemt === SEGMEMT.DOWN &&
     (fill === null
       ? aboveSeaLevelArr[2].push(null)
       : aboveSeaLevelArr[2].push(formatAboveSeaLevel(el.aboveSeaLevel)));
