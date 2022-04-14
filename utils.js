@@ -88,7 +88,8 @@ function formatDataSet(dataSetArr, stationArr) {
  * @param {array} options 包含站号和探空仪ID的对象数组
  */
 async function getDataSetHandler(options) {
-  const url = `${baseUrl}/api/dataset/view.json`;
+  // const url = `${baseUrl}/api/dataset/view.json`;
+  const url = `${baseUrl}/api/report/tkdatasetview`;
   let dataSet = {};
   try {
     const promiseArr = [];
@@ -159,6 +160,7 @@ function getSondeData(opt) {
     };
     let sondeData = {};
     try {
+      console.log("获取探空仪数据", res.body);
       const result = JSON.parse(res.body);
       if (result._MSG_.startsWith("ERROR") || result._RTN_CODE_ === "ERROR") {
         err(JSON.stringify({ message: "获取探空仪数据失败", body: res.body }));
@@ -184,7 +186,7 @@ function getSondeData(opt) {
  * @param {string} station 站号
  */
 function getLastSondeDataByStation(station) {
-  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA_NEW.query.do";
   return post(url, {
     form: {
       _query_param: JSON.stringify([{ FD: "STATION_NUMBER", OP: "=", WD: station }]),
@@ -744,7 +746,7 @@ function getThreshold(firm) {
  */
 function getSondeTime(options) {
   const { station, tkyid } = options;
-  const url = baseUrl + "/project/TK_TKY_STAT_DATA.query.do";
+  const url = baseUrl + "/project/TK_TKY_STAT_DATA_NEW.query.do";
   return post(url, {
     form: {
       _query_param: JSON.stringify([
@@ -1167,13 +1169,16 @@ function formatSondeRawDataset(sondeRawData = []) {
   sondeRawData = uniqueFun(sondeRawData, "seconds");
   // 把segmemt为空的，取前一条数据中的segmemt补到空的位置上
   // sondeRawData = fillSegmemt(sondeRawData);
+  console.log(sondeRawData[0]);
   const uCount = sondeRawData.length;
   console.log("探空仪数据去重后余 = " + uCount);
   // sondeRawData = removeSegmemt(sondeRawData);
   // const nonSegmemtCount = uCount - sondeRawData.length;
   // console.log("没有标记位的有 = " + nonSegmemtCount);
   // 补空并重组返回结构
-  sondeRawData = fillSondeRawData(sondeRawData);
+  try {
+    sondeRawData = fillSondeRawData(sondeRawData);
+  } catch (error) {}
   // 保留用到的属性，可减小接口返回数据size
   // sondeRawData = sondeRawData.map((item) =>
   //   filterFields(item, ["segmemt", "aboveSeaLevel", "temperature", "pressure", "humidity", "seconds"])
@@ -1187,17 +1192,17 @@ function formatSondeRawDataset(sondeRawData = []) {
  * @returns {array}
  */
 function formatSondeDataset(sondeData = []) {
-  console.log("探空仪数据 = " + sondeData.length);
+  console.log("质控探空仪数据 = " + sondeData.length);
   // 去重
   // sondeRawData = arrayToDistinct(sondeRawData, "seconds");
   sondeData = uniqueFun(sondeData, "seconds");
   // 把segmemt为空的，取前一条数据中的segmemt补到空的位置上
   sondeData = fillSegmemt(sondeData);
   const uCount = sondeData.length;
-  console.log("探空仪数据去重后余 = " + uCount);
+  console.log("质控探空仪数据去重后余 = " + uCount);
   sondeData = removeSegmemt(sondeData);
   const nonSegmemtCount = uCount - sondeData.length;
-  console.log("没有标记位的有 = " + nonSegmemtCount);
+  console.log("质控探空仪数据没有标记位的有 = " + nonSegmemtCount);
   // 补空并重组返回结构
   sondeData = fillSondeData(sondeData);
   // 保留用到的属性，可减小接口返回数据size
@@ -1410,6 +1415,7 @@ function setAboveSeaLevelArr(aboveSeaLevelArr, el, fill) {
 function formatEquipmentData(data, threshold) {
   const equipmentData = [[], [], [], [], [], []];
   // 时序库接口走这里逻辑
+  /** 2022/04/14修改不获取时序库数据了 **
   data.forEach((el, i) => {
     if (
       i !== 0 &&
@@ -1438,8 +1444,9 @@ function formatEquipmentData(data, threshold) {
     equipmentData[4].push(threshold.max);
     equipmentData[5].push(threshold.min);
   });
-  // view.json接口走这里逻辑
-  /**
+  /**/
+
+  //** /api/report/tkdatasetview 接口走这里逻辑 **
   data.forEach((el, i) => {
     if (
       i !== 0 &&

@@ -15,6 +15,8 @@ const resTypeHandlers = {
   fuse: getFuse,
 };
 
+const resTypeAll = ["sondeRaw", "sonde"];
+
 /**
  * 探空仪非质控廓线图数据
  * @param {string} station 站号
@@ -30,7 +32,8 @@ async function getSondeRaw(station, tkyid) {
   //   err(error.message);
   //   console.trace(error);
   // }
-  const url = `${baseUrl}/api/dataset/view.json`;
+  // const url = `${baseUrl}/api/dataset/view.json`;
+  const url = `${baseUrl}/api/report/tkdatasetview`;
   let sondeRawData = undefined;
   // 下标 0：x轴时间，1：温度，2：湿度，3：气压，4：海拔，5：经纬度
   let result = [[], [], [], [], [], []];
@@ -51,7 +54,8 @@ async function getSondeRaw(station, tkyid) {
  * @param {string} tkyid 探空仪编号
  */
 async function getSonde(station, tkyid) {
-  const url = `${baseUrl}/api/dataset/view.json`;
+  // const url = `${baseUrl}/api/dataset/view.json`;
+  const url = `${baseUrl}/api/report/tkdatasetview`;
   let sondeData = undefined;
   // 下标 0：x轴时间，1：温度，2：湿度，3：气压，4：海拔，5：经纬度
   let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []], []];
@@ -68,6 +72,8 @@ async function getSonde(station, tkyid) {
 
 /**
  * 熔断器高程（度）图数据
+ * @description 修改日期：2022/04/14 @author sunwei
+ * @description 以后没有熔断数据了，所以不处理fuse数据的获取了
  * @param {string} station 站号
  * @param {string} tkyid 探空仪编号
  */
@@ -93,17 +99,21 @@ async function getSondeDataForEcharts(options) {
   const result = {};
   // 2.遍历resType添加到promiseAllArr
   const promiseAllArr = [];
+  const resTypeArrFiltration = [];
   resTypeArr.forEach((resType) => {
+    // 增加resTypeAll列表，如果参数传递了超出列表范围的值，不做处理
+    if (!resTypeAll.includes(resType)) return;
+    // 只保留列表内的参数作为返回值对象的key
+    resTypeArrFiltration.push(resType);
     const p = resTypeHandlers[resType](station, tkyid);
     promiseAllArr.push(p);
   });
   // 3.得到promiseAllResultArr
   const promiseAllResultArr = await Promise.all(promiseAllArr);
-  // 4.以resType中每一项为key组装返回数据对象 {"sondeRaw": xxx, "fuse": xxx}
+  // 4.以resType为key组装返回数据对象 例如：{"sondeRaw": xxx, "fuse": xxx}
   promiseAllResultArr.forEach((item, i) => {
-    result[resTypeArr[i]] = item;
+    result[resTypeArrFiltration[i]] = item;
   });
-
   return result;
 }
 
@@ -125,12 +135,12 @@ function sondeDataForEcharts(req, res) {
     warning("parameter 'tkyid' is empty!");
     return;
   }
-  const resTypePool = ["sondeRaw", "sonde", "fuse"];
+
   // 1.resType string to array
   if (options.resType) {
     options.resTypeArr = options.resType.split(",");
   } else {
-    options.resTypeArr = resTypePool;
+    options.resTypeArr = ["sondeRaw", "sonde"]; // 默认值
   }
   const st = Date.now();
   getSondeDataForEcharts(options)

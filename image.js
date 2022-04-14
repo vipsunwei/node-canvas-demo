@@ -31,7 +31,10 @@ async function imageHandler(options) {
   }
   let fdata = [];
   // if (options.type === "raw") {
-  fdata = !data ? rawResult : formatSondeRawDataset(data);
+  try {
+    fdata = !data ? rawResult : formatSondeRawDataset(data);
+    console.log(fdata);
+  } catch (error) {}
   // } else {
   //   fdata = !data ? result : formatSondeDataset(data);
   // }
@@ -65,7 +68,11 @@ function image(req, res) {
     .then((result) => {
       res.send(result);
       const d = Date.now() - st;
-      info(options, options.type === "raw" ? "生成原始数据廓线图" : "生成质控数据廓线图", `接口总用时：${d / 1000}秒`);
+      info(
+        options,
+        options.type === "raw" ? "生成原始数据廓线图" : "生成质控数据廓线图",
+        `接口总用时：${d / 1000}秒`
+      );
     })
     .catch((error) => {
       err("500 报错信息： " + error.message);

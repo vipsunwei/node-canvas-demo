@@ -40,15 +40,20 @@ async function deviceInfoImageHandler(options) {
     /**
      * 2021-11-30修改：从view.json接口获取设备信息
      * 2021-12-02修改：改回从时序库取设备信息数据
+     * 2022/04/14修改：从泽帆的接口获取数据（/api/report/tkdatasetview）
      */
+
+    /** 不从时序库获取数据了 **
     deviceInfo = await getSoundingMsg({
       sondeCode: options.tkyid,
       startTime: parseInt(+new Date(startTime) / 1000),
       endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
     });
-    // if (!"type" in options || options.type !== "raw") options.type = "raw";
-    // const res = await getDataForImage({ ...options, type: "raw" });
-    // deviceInfo = res.data;
+    /**/
+
+    if (!"type" in options || options.type !== "raw") options.type = "raw";
+    const res = await getDataForImage({ ...options, type: "raw" });
+    deviceInfo = res.data;
     const d = Date.now() - st;
     console.log("device info 第1条数据: ");
     console.log(deviceInfo?.[0]);
