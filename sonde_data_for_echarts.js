@@ -2,17 +2,17 @@ const {
   err,
   baseUrl,
   http: getSondeDataset,
-  getOptionForFuse,
-  getSoundingMsg,
+  // getOptionForFuse,
+  // getSoundingMsg,
   formatSondeRawDataset,
   formatSondeDataset,
-  formatFuseData,
+  // formatFuseData,
 } = require("./utils");
 
 const resTypeHandlers = {
   sondeRaw: getSondeRaw,
   sonde: getSonde,
-  fuse: getFuse,
+  // fuse: getFuse,
 };
 
 const resTypeAll = ["sondeRaw", "sonde"];
@@ -71,12 +71,13 @@ async function getSonde(station, tkyid) {
 }
 
 /**
- * 熔断器高程（度）图数据
+ * 熔断器高程（度）图数据(废弃)
  * @description 修改日期：2022/04/14 @author sunwei
  * @description 以后没有熔断数据了，所以不处理fuse数据的获取了
  * @param {string} station 站号
  * @param {string} tkyid 探空仪编号
  */
+/** 以后没有熔断数据了，所以不处理fuse数据的获取了 **
 async function getFuse(station, tkyid) {
   let fuseData = undefined;
   let result = [[], [], [], []];
@@ -93,6 +94,7 @@ async function getFuse(station, tkyid) {
   }
   return !fuseData ? result : formatFuseData(fuseData, option.startTime);
 }
+/* */
 
 async function getSondeDataForEcharts(options) {
   const { station, tkyid, resTypeArr } = options;

@@ -3,11 +3,11 @@ const {
   warning,
   err,
   getDataForImage,
-  getOptionForFuse,
-  getSoundingMsg,
+  // getOptionForFuse,
+  // getSoundingMsg,
   generateHeightImageBase64,
   formatSondeDataset,
-  formatFuseData,
+  // formatFuseData,
   formatSondeRawDataset,
 } = require("./utils.js");
 
@@ -72,14 +72,21 @@ async function heightImageHandler(options) {
   }
   fuseData = !fuseData ? [[], []] : formatFuseData(fuseData, startTime);
   /* */
-  let imgBase64 = "";
-  try {
-    imgBase64 = generateHeightImageBase64(sondeData, options);
-  } catch (error) {
-    err(error.message);
-    console.trace(error);
+
+  // 如果传递参数from = web直接将格式化后的数据返回给浏览器，
+  // 否则画图生成base64字符串返回给自动日报程序（泽帆）
+  if (options?.from === "web") {
+    return sondeData;
+  } else {
+    let imgBase64 = "";
+    try {
+      imgBase64 = generateHeightImageBase64(sondeData, options);
+    } catch (error) {
+      err(error.message);
+      console.trace(error);
+    }
+    return imgBase64;
   }
-  return imgBase64;
 }
 
 /**

@@ -1206,6 +1206,9 @@ function formatSondeDataset(sondeData = []) {
   sondeData = removeSegmemt(sondeData);
   const nonSegmemtCount = uCount - sondeData.length;
   console.log("质控探空仪数据没有标记位的有 = " + nonSegmemtCount);
+  // 过滤掉seconds不正确的数据
+  sondeData = delWrongSeconds(sondeData);
+  console.log("质控探空仪数据去掉不正确的seconds后余 = " + sondeData.length);
   // 补空并重组返回结构
   sondeData = fillSondeData(sondeData);
   // 保留用到的属性，可减小接口返回数据size
@@ -1235,7 +1238,16 @@ function fillSegmemt(data) {
  * @returns {array}
  */
 function removeSegmemt(data) {
-  return data.filter((item) => item.segmemt);
+  return data.filter((item) => "segmemt" in item && item.segmemt !== "");
+}
+
+/**
+ * 将数组中seconds不是正确秒级时间戳的元素过滤掉（针对质控后的数据可能会出现seconds长度不对的情况）
+ * @param {Array} arr 待过滤的数组
+ * @returns 过滤掉seconds不是秒级时间戳后的数组
+ */
+function delWrongSeconds(arr) {
+  return arr.filter((item) => new Date(+item.seconds * 1000)?.getFullYear() >= 2000);
 }
 
 /**

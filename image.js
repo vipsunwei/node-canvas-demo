@@ -3,9 +3,9 @@ const {
   warning,
   err,
   getDataForImage,
-  formatData,
+  // formatData,
   generateImageBase64,
-  formatSondeDataset,
+  // formatSondeDataset,
   formatSondeRawDataset,
 } = require("./utils.js");
 
@@ -16,7 +16,7 @@ const {
  */
 async function imageHandler(options) {
   let rawResult = [[], [], [], [], []];
-  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  // let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
   let data = undefined;
   try {
     const st = new Date() - 0;
