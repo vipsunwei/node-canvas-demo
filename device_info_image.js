@@ -31,9 +31,10 @@ async function deviceInfoImageHandler(options) {
   }
 
   console.log(sondeData);
-  const { startTime, endTime, firm } = sondeData;
+  const { firm } = sondeData;
   // 获取熔断器数据
   let deviceInfo = undefined;
+  // 下标 0：时间，1：电压，2：频率，3：信号强度，4：电压最大值，5：电压最小值
   const defaultRes = [[], [], [], [], [], []];
   try {
     const st = Date.now();
@@ -50,28 +51,32 @@ async function deviceInfoImageHandler(options) {
       endTime: parseInt(+new Date(endTime) / 1000) + 6 * 60 * 60,
     });
     /**/
-
+    // 使用原始数据
     if (!"type" in options || options.type !== "raw") options.type = "raw";
     const res = await getDataForImage({ ...options, type: "raw" });
     deviceInfo = res.data;
     const d = Date.now() - st;
     console.log("device info 第1条数据: ");
     console.log(deviceInfo?.[0]);
-    info(options, "获取探空仪电压等信息数据", "用时：" + d / 1000 + "秒");
+    info(options, "获取探空仪电压，频率，信号强度等信息数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
   deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
   // console.log("返回的数据 -- ", deviceInfo);
-  let imgBase64 = "";
-  try {
-    imgBase64 = generateDeviceInfoImageBase64(deviceInfo);
-  } catch (error) {
-    err(error.message);
-    console.trace(error);
+  if (options?.from === "web") {
+    return deviceInfo;
+  } else {
+    let imgBase64 = "";
+    try {
+      imgBase64 = generateDeviceInfoImageBase64(deviceInfo);
+    } catch (error) {
+      err(error.message);
+      console.trace(error);
+    }
+    return imgBase64;
   }
-  return imgBase64;
 }
 
 /**
