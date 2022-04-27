@@ -1,44 +1,29 @@
-const {
-  info,
-  warning,
-  err,
-  getDataForImage,
-  // getOptionForFuse,
-  // getSoundingMsg,
-  generateHeightImageBase64,
-  formatSondeDataset,
-  // formatFuseData,
-  formatSondeRawDataset,
-} = require("./utils.js");
+const { info, warning, err, getDataForHeightImage, generateHeightImageBase64 } = require("./utils.js");
 
 async function heightImageHandler(options) {
   // 原始数据返回结构
-  let rawResult = [[], [], [], [], []];
+  // let rawResult = [[], [], [], [], []];
   // 质控数据返回结构
-  let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
-  let sondeData = undefined;
+  // let result = [[], [[], [], []], [[], [], []], [[], [], []], [[], [], []]];
+  let data = undefined;
   // let startTime = "";
   try {
     const st = Date.now();
-    const res = await getDataForImage(options);
+    const res = await getDataForHeightImage(options);
     const d = Date.now() - st;
-    info(
-      options,
-      options.type === "raw" ? "获取探空仪原始数据" : "获取探空仪质控数据",
-      `用时：${d / 1000}秒`
-    );
-    sondeData = res.data;
+    info(options, "获取高程图数据", `用时：${d / 1000}秒`);
+    data = res.data;
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
   // 2022/04/14修改：不需要获取熔断器数据了，所需参数也就不需要了
   // startTime = (sondeData && sondeData[0]?.seconds) || startTime;
-  if (options.type === "raw") {
-    sondeData = !sondeData ? rawResult : formatSondeRawDataset(sondeData);
-  } else {
-    sondeData = !sondeData ? result : formatSondeDataset(sondeData);
-  }
+  // if (options.type === "raw") {
+  //   sondeData = !sondeData ? rawResult : formatSondeRawDataset(sondeData);
+  // } else {
+  //   sondeData = !sondeData ? result : formatSondeDataset(sondeData);
+  // }
 
   /** 2022/04/14修改：不需要获取熔断器数据了，所需参数也就不需要了 **
   // 获取熔断器数据所需参数
@@ -75,12 +60,13 @@ async function heightImageHandler(options) {
 
   // 如果传递参数from = web直接将格式化后的数据返回给浏览器，
   // 否则画图生成base64字符串返回给自动日报程序（泽帆）
+  const fdata = data?.code !== 0 ? {} : data?.data || {};
   if (options?.from === "web") {
-    return sondeData;
+    return fdata;
   } else {
     let imgBase64 = "";
     try {
-      imgBase64 = generateHeightImageBase64(sondeData, options);
+      imgBase64 = generateHeightImageBase64(fdata, options);
     } catch (error) {
       err(error.message);
       console.trace(error);

@@ -340,14 +340,14 @@ function formatData(data) {
  * @param {object} obj 参数对象
  * @param {string} obj.station 站号
  * @param {string} obj.tkyid 探空仪ID
- * @param {string} type "=raw"表示非质控，不传代表质控
+//  * @param {string} type "=raw"表示非质控，不传代表质控
  * @returns
  */
-function http(url, obj, type) {
+function http(url, obj /*, type*/) {
   const params = { station: obj.station, tkyId: obj.tkyid };
-  if (type === "raw") {
-    params.format = "raw";
-  }
+  // if (type === "raw") {
+  //   params.format = "raw";
+  // }
   return axios.get(url, { params });
 }
 
@@ -584,10 +584,10 @@ function generateImageBase64(obj, options) {
       ...(obj?.aboveSeaLevel?.[2] || []),
     ];
   }
-  defaultOptions.xAxis[0].data = obj?.time;
-  defaultOptions.xAxis[1].data = obj?.time;
-  defaultOptions.xAxis[2].data = obj?.time;
-  defaultOptions.xAxis[3].data = obj?.time;
+  defaultOptions.xAxis[0].data = obj?.time || [];
+  defaultOptions.xAxis[1].data = obj?.time || [];
+  defaultOptions.xAxis[2].data = obj?.time || [];
+  defaultOptions.xAxis[3].data = obj?.time || [];
 
   // defaultOptions.series[0].data = lineArr[0];
   // defaultOptions.series[1].data = lineArr[1];
@@ -863,7 +863,15 @@ function getFuseId(sondeCode) {
     return fuseId;
   });
 }
-
+/**
+ * 获取高程图数据
+ * @param {object} options
+ * @returns
+ */
+function getDataForHeightImage(options) {
+  let url = `${baseUrl}/api/report/heightchart`;
+  return http(url, options);
+}
 /**
  * 生成高程图base64数据
  * @description 2022/04/14修改：去掉参数熔断器数据数组
@@ -871,7 +879,7 @@ function getFuseId(sondeCode) {
  * @param {object} options 接口收到的参数
  */
 function generateHeightImageBase64(obj, options) {
-  const type = options.type;
+  // const type = options.type;
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -987,8 +995,8 @@ function generateHeightImageBase64(obj, options) {
   //   sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
   // }
   // let xSondeAboveSeaLevelArr = sondeData[0];
-  heightOption.series[0].data = sondeAboveSeaLevelArr;
-  heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
+  heightOption.series[0].data = obj?.aboveSeaLevel || [];
+  heightOption.xAxis[0].data = obj?.time || [];
 
   // 不画熔断器数据折线
   // let xFuseAboveSeaLevelArr = fuseData[0];
@@ -1770,6 +1778,7 @@ module.exports = {
   getDataForImage,
   getOptionForFuse,
   getSoundingMsg,
+  getDataForHeightImage,
   generateHeightImageBase64,
   formatData,
   generateImageBase64,
