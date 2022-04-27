@@ -2,13 +2,8 @@ const {
   info,
   warning,
   err,
-  getSoundingMsg,
+  getDataForDeviceInfoImage,
   generateDeviceInfoImageBase64,
-  getOptionForFuse,
-  formatEquipmentData,
-  getSondeData,
-  getThreshold,
-  getDataForImage,
 } = require("./utils.js");
 
 /**
@@ -22,22 +17,21 @@ async function deviceInfoImageHandler(options) {
    * 2.根据探空仪ID、开始时间、结束时间获取数据
    * 3.
    */
-  let sondeData = {};
-  try {
-    sondeData = await getSondeData(options);
-  } catch (error) {
-    err(error.message);
-    console.trace(error);
-  }
+  // let sondeData = {};
+  // try {
+  //   sondeData = await getSondeData(options);
+  // } catch (error) {
+  //   err(error.message);
+  //   console.trace(error);
+  // }
 
-  console.log(sondeData);
-  const { firm } = sondeData;
+  // console.log(sondeData);
+  // const { firm } = sondeData;
   // 获取熔断器数据
-  let deviceInfo = undefined;
+  let data = undefined;
   // 下标 0：时间，1：电压，2：频率，3：信号强度，4：电压最大值，5：电压最小值
-  const defaultRes = [[], [], [], [], [], []];
+  // const defaultRes = [[], [], [], [], [], []];
   try {
-    const st = Date.now();
     /**
      * 2021-11-30修改：从view.json接口获取设备信息
      * 2021-12-02修改：改回从时序库取设备信息数据
@@ -52,25 +46,25 @@ async function deviceInfoImageHandler(options) {
     });
     /**/
     // 使用原始数据
-    if (!"type" in options || options.type !== "raw") options.type = "raw";
-    const res = await getDataForImage({ ...options, type: "raw" });
-    deviceInfo = res.data;
+
+    const st = Date.now();
+    const res = await getDataForDeviceInfoImage(options);
+    data = res.data;
     const d = Date.now() - st;
-    console.log("device info 第1条数据: ");
-    console.log(deviceInfo?.[0]);
     info(options, "获取探空仪电压，频率，信号强度等信息数据", "用时：" + d / 1000 + "秒");
   } catch (error) {
     err(error.message);
     console.trace(error);
   }
-  deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
-  // console.log("返回的数据 -- ", deviceInfo);
+  // deviceInfo = !deviceInfo ? defaultRes : formatEquipmentData(deviceInfo, getThreshold(firm));
+  // console.log("返回的数据 -- ", data);
+  const fdata = data?.code !== 0 ? {} : data?.data || {};
   if (options?.from === "web") {
-    return deviceInfo;
+    return fdata;
   } else {
     let imgBase64 = "";
     try {
-      imgBase64 = generateDeviceInfoImageBase64(deviceInfo);
+      imgBase64 = generateDeviceInfoImageBase64(fdata);
     } catch (error) {
       err(error.message);
       console.trace(error);

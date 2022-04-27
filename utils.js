@@ -1521,11 +1521,20 @@ function formatEquipmentData(data, threshold) {
 }
 
 /**
+ * 获取设备信息图数据
+ * @param {object} options
+ * @returns
+ */
+function getDataForDeviceInfoImage(options) {
+  let url = `${baseUrl}/api/report/workingstatechart`;
+  return http(url, options);
+}
+/**
  * 生成设备信息图base64
- * @param {array} deviceInfo
+ * @param {object} obj
  * @returns {string}
  */
-function generateDeviceInfoImageBase64(deviceInfo) {
+function generateDeviceInfoImageBase64(obj) {
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -1740,14 +1749,14 @@ function generateDeviceInfoImageBase64(deviceInfo) {
     ],
   };
 
-  option.xAxis[0].data = deviceInfo[0];
-  option.xAxis[1].data = deviceInfo[0];
-  option.xAxis[2].data = deviceInfo[0];
-  option.series[0].data = deviceInfo[1];
-  option.series[1].data = deviceInfo[2];
-  option.series[2].data = deviceInfo[3];
-  option.series[3].data = deviceInfo[4];
-  option.series[4].data = deviceInfo[5];
+  option.xAxis[0].data = obj?.time || [];
+  option.xAxis[1].data = obj?.time || [];
+  option.xAxis[2].data = obj?.time || [];
+  option.series[0].data = obj?.batteryVol || [];
+  option.series[1].data = obj?.freqz || [];
+  option.series[2].data = obj?.rssi || [];
+  option.series[3].data = obj?.batteryVolMax || [];
+  option.series[4].data = obj?.batteryVolMin || [];
 
   config.option = option;
   const buffer = echarts(config);
@@ -1774,14 +1783,15 @@ module.exports = {
   formatStationDataSet,
   deleteZero,
   formatDataSet,
+  formatData,
   getDataSetHandler,
-  getDataForImage,
   getOptionForFuse,
   getSoundingMsg,
+  getDataForImage,
+  generateImageBase64,
   getDataForHeightImage,
   generateHeightImageBase64,
-  formatData,
-  generateImageBase64,
+  getDataForDeviceInfoImage,
   generateDeviceInfoImageBase64,
   getFuseId,
   formatDate,
