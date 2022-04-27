@@ -266,15 +266,16 @@ function deepObjectMerge(FirstOBJ = {}, SecondOBJ = {}) {
  * @returns {promise} 网络请求返回的promise对象
  */
 function getDataForImage(options) {
-  console.log("/api/report/tkdatasetview接口入参：");
   console.log(options);
   // const url = `${baseUrl}/api/dataset/view.json`;
-  const url = `${baseUrl}/api/report/tkdatasetview`;
+  // const url = `${baseUrl}/api/report/tkdatasetview`;
+  let url = `${baseUrl}/api/report`;
   if (!options.type || options.type !== "raw") {
-    return http(url, options);
+    url += `/sondechart`;
   } else {
-    return http(url, options, "raw");
+    url += `/sonderawchart`;
   }
+  return http(url, options);
 }
 
 /**
@@ -352,11 +353,11 @@ function http(url, obj, type) {
 
 /**
  * 把echarts出的图表转成base64字符串
- * @param {array} lineArr echarts画图需要的data数据数组
+ * @param {object} obj echarts画图需要的data数据
  * @param {object} options 接口收到的参数
  * @returns 图片的base64字符串
  */
-function generateImageBase64(lineArr, options) {
+function generateImageBase64(obj, options) {
   const config = {
     width: 950, // Image width, type is number.
     height: 300, // Image height, type is number.
@@ -556,21 +557,37 @@ function generateImageBase64(lineArr, options) {
       },
     ],
   };
-  // if (options.type === "raw") {
-  defaultOptions.series[0].data = lineArr[1];
-  defaultOptions.series[1].data = lineArr[2];
-  defaultOptions.series[2].data = lineArr[3];
-  defaultOptions.series[3].data = lineArr[4];
-  // } else {
-  //   defaultOptions.series[0].data = [...lineArr[1][0], ...lineArr[1][1], ...lineArr[1][2]];
-  //   defaultOptions.series[1].data = [...lineArr[2][0], ...lineArr[2][1], ...lineArr[2][2]];
-  //   defaultOptions.series[2].data = [...lineArr[3][0], ...lineArr[3][1], ...lineArr[3][2]];
-  //   defaultOptions.series[3].data = [...lineArr[4][0], ...lineArr[4][1], ...lineArr[4][2]];
-  // }
-  defaultOptions.xAxis[0].data = lineArr[0];
-  defaultOptions.xAxis[1].data = lineArr[0];
-  defaultOptions.xAxis[2].data = lineArr[0];
-  defaultOptions.xAxis[3].data = lineArr[0];
+  if (options.type === "raw") {
+    defaultOptions.series[0].data = obj?.temperature || [];
+    defaultOptions.series[1].data = obj?.humidity || [];
+    defaultOptions.series[2].data = obj?.pressure || [];
+    defaultOptions.series[3].data = obj?.aboveSeaLevel || [];
+  } else {
+    defaultOptions.series[0].data = [
+      ...(obj?.temperature?.[0] || []),
+      ...(obj?.temperature?.[1] || []),
+      ...(obj?.temperature?.[2] || []),
+    ];
+    defaultOptions.series[1].data = [
+      ...(obj?.humidity?.[0] || []),
+      ...(obj?.humidity?.[1] || []),
+      ...(obj?.humidity?.[2] || []),
+    ];
+    defaultOptions.series[2].data = [
+      ...(obj?.pressure?.[0] || []),
+      ...(obj?.pressure?.[1] || []),
+      ...(obj?.pressure?.[2] || []),
+    ];
+    defaultOptions.series[3].data = [
+      ...(obj?.aboveSeaLevel?.[0] || []),
+      ...(obj?.aboveSeaLevel?.[1] || []),
+      ...(obj?.aboveSeaLevel?.[2] || []),
+    ];
+  }
+  defaultOptions.xAxis[0].data = obj?.time;
+  defaultOptions.xAxis[1].data = obj?.time;
+  defaultOptions.xAxis[2].data = obj?.time;
+  defaultOptions.xAxis[3].data = obj?.time;
 
   // defaultOptions.series[0].data = lineArr[0];
   // defaultOptions.series[1].data = lineArr[1];
@@ -850,10 +867,10 @@ function getFuseId(sondeCode) {
 /**
  * 生成高程图base64数据
  * @description 2022/04/14修改：去掉参数熔断器数据数组
- * @param {array} sondeData 探空仪数据
+ * @param {object} obj 探空仪数据
  * @param {object} options 接口收到的参数
  */
-function generateHeightImageBase64(sondeData, options) {
+function generateHeightImageBase64(obj, options) {
   const type = options.type;
   const config = {
     width: 950, // Image width, type is number.
@@ -963,13 +980,13 @@ function generateHeightImageBase64(sondeData, options) {
       // },
     ],
   };
-  let sondeAboveSeaLevelArr = [];
-  if (type === "raw") {
-    sondeAboveSeaLevelArr = sondeData[4];
-  } else {
-    sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
-  }
-  let xSondeAboveSeaLevelArr = sondeData[0];
+  // let sondeAboveSeaLevelArr = [];
+  // if (type === "raw") {
+  //   sondeAboveSeaLevelArr = sondeData[4];
+  // } else {
+  //   sondeAboveSeaLevelArr = [...sondeData[4][0], ...sondeData[4][1], ...sondeData[4][2]];
+  // }
+  // let xSondeAboveSeaLevelArr = sondeData[0];
   heightOption.series[0].data = sondeAboveSeaLevelArr;
   heightOption.xAxis[0].data = xSondeAboveSeaLevelArr;
 
